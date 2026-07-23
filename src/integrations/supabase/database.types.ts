@@ -14,6 +14,7 @@ export type Database = {
           id: string;
           email: string;
           email_confirmed_at: string | null;
+          role: Database["public"]["Enums"]["user_role"];
           created_at: string;
           updated_at: string;
         };
@@ -21,12 +22,48 @@ export type Database = {
           id: string;
           email: string;
           email_confirmed_at?: string | null;
+          role?: Database["public"]["Enums"]["user_role"];
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           email?: string;
           email_confirmed_at?: string | null;
+          role?: Database["public"]["Enums"]["user_role"];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      companies: {
+        Row: {
+          id: string;
+          name: string;
+          normalized_name: string;
+          website: string | null;
+          normalized_domain: string | null;
+          city: string | null;
+          department: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          normalized_name: string;
+          website?: string | null;
+          normalized_domain?: string | null;
+          city?: string | null;
+          department?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          normalized_name?: string;
+          website?: string | null;
+          normalized_domain?: string | null;
+          city?: string | null;
+          department?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -181,6 +218,7 @@ export type Database = {
           professional_email: string | null;
           email_verification_status: Database["public"]["Enums"]["verification_status"];
           professional_profile_summary: string | null;
+          company_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -196,6 +234,7 @@ export type Database = {
           professional_email?: string | null;
           email_verification_status?: Database["public"]["Enums"]["verification_status"];
           professional_profile_summary?: string | null;
+          company_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -210,15 +249,24 @@ export type Database = {
           professional_email?: string | null;
           email_verification_status?: Database["public"]["Enums"]["verification_status"];
           professional_profile_summary?: string | null;
+          company_id?: string | null;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "prospects_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       opportunities: {
         Row: {
           id: string;
-          firm_id: string;
-          weekly_batch_id: string;
+          firm_id: string | null;
+          weekly_batch_id: string | null;
           prospect_id: string;
           title: string;
           signal_type: string;
@@ -232,13 +280,17 @@ export type Database = {
           potential_needs: string[];
           reviewed_at: string | null;
           reviewed_by: string | null;
+          review_status: Database["public"]["Enums"]["opportunity_review_status"];
+          rejection_reason:
+            Database["public"]["Enums"]["opportunity_rejection_reason"] | null;
+          internal_notes: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          firm_id: string;
-          weekly_batch_id: string;
+          firm_id?: string | null;
+          weekly_batch_id?: string | null;
           prospect_id: string;
           title: string;
           signal_type: string;
@@ -252,6 +304,10 @@ export type Database = {
           potential_needs?: string[];
           reviewed_at?: string | null;
           reviewed_by?: string | null;
+          review_status?: Database["public"]["Enums"]["opportunity_review_status"];
+          rejection_reason?:
+            Database["public"]["Enums"]["opportunity_rejection_reason"] | null;
+          internal_notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -268,6 +324,10 @@ export type Database = {
           potential_needs?: string[];
           reviewed_at?: string | null;
           reviewed_by?: string | null;
+          review_status?: Database["public"]["Enums"]["opportunity_review_status"];
+          rejection_reason?:
+            Database["public"]["Enums"]["opportunity_rejection_reason"] | null;
+          internal_notes?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -392,6 +452,7 @@ export type Database = {
           verification_status: Database["public"]["Enums"]["verification_status"];
           verification_method: string | null;
           verified_at: string | null;
+          verified_by_user_id: string | null;
           is_primary: boolean;
           created_at: string;
           updated_at: string;
@@ -404,6 +465,7 @@ export type Database = {
           verification_status?: Database["public"]["Enums"]["verification_status"];
           verification_method?: string | null;
           verified_at?: string | null;
+          verified_by_user_id?: string | null;
           is_primary?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -414,6 +476,7 @@ export type Database = {
           verification_status?: Database["public"]["Enums"]["verification_status"];
           verification_method?: string | null;
           verified_at?: string | null;
+          verified_by_user_id?: string | null;
           is_primary?: boolean;
           updated_at?: string;
         };
@@ -478,6 +541,188 @@ export type Database = {
           },
         ];
       };
+      imports: {
+        Row: {
+          id: string;
+          created_by_user_id: string;
+          filename: string;
+          content_hash: string;
+          status: Database["public"]["Enums"]["import_status"];
+          failure_message: string | null;
+          total_rows: number;
+          valid_rows: number;
+          invalid_rows: number;
+          duplicate_rows: number;
+          processed_rows: number;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          created_by_user_id: string;
+          filename: string;
+          content_hash: string;
+          status?: Database["public"]["Enums"]["import_status"];
+          failure_message?: string | null;
+          total_rows?: number;
+          valid_rows?: number;
+          invalid_rows?: number;
+          duplicate_rows?: number;
+          processed_rows?: number;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          filename?: string;
+          content_hash?: string;
+          status?: Database["public"]["Enums"]["import_status"];
+          failure_message?: string | null;
+          total_rows?: number;
+          valid_rows?: number;
+          invalid_rows?: number;
+          duplicate_rows?: number;
+          processed_rows?: number;
+          started_at?: string | null;
+          completed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "imports_created_by_user_id_fkey";
+            columns: ["created_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      import_rows: {
+        Row: {
+          id: string;
+          import_id: string;
+          row_number: number;
+          raw_data: Json;
+          normalized_data: Json | null;
+          status: Database["public"]["Enums"]["import_row_status"];
+          error_messages: Json;
+          duplicate_of_prospect_id: string | null;
+          duplicate_match_level:
+            Database["public"]["Enums"]["duplicate_match_level"] | null;
+          duplicate_resolution:
+            Database["public"]["Enums"]["duplicate_resolution"] | null;
+          created_prospect_id: string | null;
+          created_opportunity_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_id: string;
+          row_number: number;
+          raw_data: Json;
+          normalized_data?: Json | null;
+          status?: Database["public"]["Enums"]["import_row_status"];
+          error_messages?: Json;
+          duplicate_of_prospect_id?: string | null;
+          duplicate_match_level?:
+            Database["public"]["Enums"]["duplicate_match_level"] | null;
+          duplicate_resolution?:
+            Database["public"]["Enums"]["duplicate_resolution"] | null;
+          created_prospect_id?: string | null;
+          created_opportunity_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          raw_data?: Json;
+          normalized_data?: Json | null;
+          status?: Database["public"]["Enums"]["import_row_status"];
+          error_messages?: Json;
+          duplicate_of_prospect_id?: string | null;
+          duplicate_match_level?:
+            Database["public"]["Enums"]["duplicate_match_level"] | null;
+          duplicate_resolution?:
+            Database["public"]["Enums"]["duplicate_resolution"] | null;
+          created_prospect_id?: string | null;
+          created_opportunity_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_import_id_fkey";
+            columns: ["import_id"];
+            isOneToOne: false;
+            referencedRelation: "imports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "import_rows_duplicate_of_prospect_id_fkey";
+            columns: ["duplicate_of_prospect_id"];
+            isOneToOne: false;
+            referencedRelation: "prospects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "import_rows_created_prospect_id_fkey";
+            columns: ["created_prospect_id"];
+            isOneToOne: false;
+            referencedRelation: "prospects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "import_rows_created_opportunity_id_fkey";
+            columns: ["created_opportunity_id"];
+            isOneToOne: true;
+            referencedRelation: "opportunities";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      audit_logs: {
+        Row: {
+          id: string;
+          actor_user_id: string;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          previous_data: Json | null;
+          new_data: Json | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_user_id: string;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          previous_data?: Json | null;
+          new_data?: Json | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          action?: string;
+          entity_type?: string;
+          entity_id?: string;
+          previous_data?: Json | null;
+          new_data?: Json | null;
+          metadata?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_user_id_fkey";
+            columns: ["actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -494,6 +739,7 @@ export type Database = {
       };
     };
     Enums: {
+      user_role: "MEMBER" | "ADMIN";
       weekly_batch_status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
       verification_status: "UNVERIFIED" | "LIKELY" | "VERIFIED" | "INVALID";
       contactability_status:
@@ -513,6 +759,28 @@ export type Database = {
         | "WRONG_LOCATION"
         | "ALREADY_KNOWN"
         | "INSUFFICIENT_CONTACT_DETAILS"
+        | "OTHER";
+      import_status:
+        | "UPLOADED"
+        | "VALIDATING"
+        | "READY"
+        | "IMPORTING"
+        | "COMPLETED"
+        | "FAILED";
+      import_row_status:
+        "PENDING" | "VALID" | "INVALID" | "DUPLICATE" | "IMPORTED" | "SKIPPED";
+      duplicate_resolution: "SKIP" | "UPDATE_EXISTING" | "CREATE_DISTINCT";
+      duplicate_match_level: "STRONG" | "SECONDARY";
+      opportunity_review_status:
+        "TO_REVIEW" | "IN_REVIEW" | "NEEDS_CHANGES" | "APPROVED" | "REJECTED";
+      opportunity_rejection_reason:
+        | "OUT_OF_TARGET"
+        | "INSUFFICIENT_SIGNAL"
+        | "STALE_SIGNAL"
+        | "UNRELIABLE_SOURCE"
+        | "INSUFFICIENT_CONTACT_DETAILS"
+        | "DUPLICATE"
+        | "COMPLIANCE_RISK"
         | "OTHER";
     };
     CompositeTypes: Record<never, never>;

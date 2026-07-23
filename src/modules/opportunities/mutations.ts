@@ -1,6 +1,7 @@
 import {
   type FeedbackDecision,
   type FeedbackReason,
+  OpportunityReviewStatus,
   OpportunityStatus,
   WeeklyBatchStatus,
 } from "@prisma/client";
@@ -27,6 +28,7 @@ export async function saveOpportunityDecision({
       id: opportunityId,
       firmId,
       status: OpportunityStatus.PUBLISHED,
+      reviewStatus: OpportunityReviewStatus.APPROVED,
       weeklyBatch: {
         firmId,
         status: WeeklyBatchStatus.PUBLISHED,

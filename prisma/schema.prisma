@@ -8,6 +8,13 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  MEMBER
+  ADMIN
+
+  @@map("user_role")
+}
+
 enum WeeklyBatchStatus {
   DRAFT
   PUBLISHED
@@ -85,17 +92,97 @@ enum FeedbackReason {
   @@map("feedback_reason")
 }
 
+enum ImportStatus {
+  UPLOADED
+  VALIDATING
+  READY
+  IMPORTING
+  COMPLETED
+  FAILED
+
+  @@map("import_status")
+}
+
+enum ImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  DUPLICATE
+  IMPORTED
+  SKIPPED
+
+  @@map("import_row_status")
+}
+
+enum DuplicateResolution {
+  SKIP
+  UPDATE_EXISTING
+  CREATE_DISTINCT
+
+  @@map("duplicate_resolution")
+}
+
+enum DuplicateMatchLevel {
+  STRONG
+  SECONDARY
+
+  @@map("duplicate_match_level")
+}
+
+enum OpportunityReviewStatus {
+  TO_REVIEW
+  IN_REVIEW
+  NEEDS_CHANGES
+  APPROVED
+  REJECTED
+
+  @@map("opportunity_review_status")
+}
+
+enum OpportunityRejectionReason {
+  OUT_OF_TARGET
+  INSUFFICIENT_SIGNAL
+  STALE_SIGNAL
+  UNRELIABLE_SOURCE
+  INSUFFICIENT_CONTACT_DETAILS
+  DUPLICATE
+  COMPLIANCE_RISK
+  OTHER
+
+  @@map("opportunity_rejection_reason")
+}
+
 model User {
   id                    String                @id @db.Uuid
   email                 String                @unique
   emailConfirmedAt      DateTime?             @map("email_confirmed_at") @db.Timestamptz(6)
   createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  role                  UserRole              @default(MEMBER)
   memberships           FirmMember[]
   reviewedOpportunities Opportunity[]         @relation("OpportunityReviewer")
   feedbacks             OpportunityFeedback[]
+  createdImports        DataImport[]
+  auditLogs             AuditLog[]
+  verifiedContacts      ContactDetail[]       @relation("ContactVerifier")
 
   @@map("users")
+}
+
+model Company {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  normalizedName   String     @map("normalized_name")
+  website          String?
+  normalizedDomain String?    @unique @map("normalized_domain")
+  city             String?
+  department       String?
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  prospects        Prospect[]
+
+  @@index([normalizedName])
+  @@map("companies")
 }
 
 model Firm {
@@ -171,41 +258,49 @@ model Prospect {
   professionalEmail          String?            @map("professional_email")
   emailVerificationStatus    VerificationStatus @default(UNVERIFIED) @map("email_verification_status")
   professionalProfileSummary String?            @map("professional_profile_summary")
+  companyId                  String?            @map("company_id") @db.Uuid
   createdAt                  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                  DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   opportunities              Opportunity[]
   signals                    Signal[]
   contactDetails             ContactDetail[]
+  company                    Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdImportRows          ImportRow[]        @relation("CreatedProspect")
+  duplicateImportRows        ImportRow[]        @relation("DuplicateProspect")
 
   @@index([department])
   @@map("prospects")
 }
 
 model Opportunity {
-  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  firmId               String                @map("firm_id") @db.Uuid
-  weeklyBatchId        String                @map("weekly_batch_id") @db.Uuid
-  prospectId           String                @map("prospect_id") @db.Uuid
+  id                   String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firmId               String?                     @map("firm_id") @db.Uuid
+  weeklyBatchId        String?                     @map("weekly_batch_id") @db.Uuid
+  prospectId           String                      @map("prospect_id") @db.Uuid
   title                String
-  signalType           String                @map("signal_type")
-  signalSummary        String                @map("signal_summary")
-  whyNow               String                @map("why_now")
-  relevanceScore       Int                   @map("relevance_score")
-  contactabilityStatus ContactabilityStatus  @default(NOT_CONTACTABLE) @map("contactability_status")
-  status               OpportunityStatus     @default(DRAFT)
-  confidenceLevel      ConfidenceLevel       @default(MEDIUM) @map("confidence_level")
-  qualificationSummary String?               @map("qualification_summary")
-  potentialNeeds       String[]              @default([]) @map("potential_needs")
-  reviewedAt           DateTime?             @map("reviewed_at") @db.Timestamptz(6)
-  reviewedBy           String?               @map("reviewed_by") @db.Uuid
-  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
-  firm                 Firm                  @relation(fields: [firmId], references: [id], onDelete: Cascade)
-  weeklyBatch          WeeklyBatch           @relation(fields: [weeklyBatchId], references: [id], onDelete: Cascade)
-  prospect             Prospect              @relation(fields: [prospectId], references: [id], onDelete: Restrict)
-  reviewer             User?                 @relation("OpportunityReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  signalType           String                      @map("signal_type")
+  signalSummary        String                      @map("signal_summary")
+  whyNow               String                      @map("why_now")
+  relevanceScore       Int                         @map("relevance_score")
+  contactabilityStatus ContactabilityStatus        @default(NOT_CONTACTABLE) @map("contactability_status")
+  status               OpportunityStatus           @default(DRAFT)
+  confidenceLevel      ConfidenceLevel             @default(MEDIUM) @map("confidence_level")
+  qualificationSummary String?                     @map("qualification_summary")
+  potentialNeeds       String[]                    @default([]) @map("potential_needs")
+  reviewedAt           DateTime?                   @map("reviewed_at") @db.Timestamptz(6)
+  reviewedByUserId     String?                     @map("reviewed_by") @db.Uuid
+  reviewStatus         OpportunityReviewStatus     @default(TO_REVIEW) @map("review_status")
+  rejectionReason      OpportunityRejectionReason? @map("rejection_reason")
+  internalNotes        String?                     @map("internal_notes")
+  createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firm                 Firm?                       @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  weeklyBatch          WeeklyBatch?                @relation(fields: [weeklyBatchId], references: [id], onDelete: Cascade)
+  prospect             Prospect                    @relation(fields: [prospectId], references: [id], onDelete: Restrict)
+  reviewer             User?                       @relation("OpportunityReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   signals              OpportunitySignal[]
   feedbacks            OpportunityFeedback[]
+  createdImportRow     ImportRow?                  @relation("CreatedOpportunity")
 
   @@unique([weeklyBatchId, prospectId])
   @@index([firmId, status])
@@ -256,10 +351,12 @@ model ContactDetail {
   verificationStatus VerificationStatus @default(UNVERIFIED) @map("verification_status")
   verificationMethod String?            @map("verification_method")
   verifiedAt         DateTime?          @map("verified_at") @db.Timestamptz(6)
+  verifiedByUserId   String?            @map("verified_by_user_id") @db.Uuid
   isPrimary          Boolean            @default(false) @map("is_primary")
   createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   prospect           Prospect           @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  verifiedBy         User?              @relation("ContactVerifier", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([prospectId, type, value])
   @@index([prospectId, verificationStatus])
@@ -283,4 +380,70 @@ model OpportunityFeedback {
   @@index([firmId, decision])
   @@index([userId])
   @@map("opportunity_feedback")
+}
+
+model DataImport {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdByUserId String       @map("created_by_user_id") @db.Uuid
+  filename        String
+  contentHash     String       @map("content_hash")
+  status          ImportStatus @default(UPLOADED)
+  failureMessage  String?      @map("failure_message")
+  totalRows       Int          @default(0) @map("total_rows")
+  validRows       Int          @default(0) @map("valid_rows")
+  invalidRows     Int          @default(0) @map("invalid_rows")
+  duplicateRows   Int          @default(0) @map("duplicate_rows")
+  processedRows   Int          @default(0) @map("processed_rows")
+  startedAt       DateTime?    @map("started_at") @db.Timestamptz(6)
+  completedAt     DateTime?    @map("completed_at") @db.Timestamptz(6)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy       User         @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  rows            ImportRow[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("imports")
+}
+
+model ImportRow {
+  id                    String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  importId              String               @map("import_id") @db.Uuid
+  rowNumber             Int                  @map("row_number")
+  rawData               Json                 @map("raw_data")
+  normalizedData        Json?                @map("normalized_data")
+  status                ImportRowStatus      @default(PENDING)
+  errorMessages         Json                 @default("[]") @map("error_messages")
+  duplicateOfProspectId String?              @map("duplicate_of_prospect_id") @db.Uuid
+  duplicateMatchLevel   DuplicateMatchLevel? @map("duplicate_match_level")
+  duplicateResolution   DuplicateResolution? @map("duplicate_resolution")
+  createdProspectId     String?              @map("created_prospect_id") @db.Uuid
+  createdOpportunityId  String?              @unique @map("created_opportunity_id") @db.Uuid
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  dataImport            DataImport           @relation(fields: [importId], references: [id], onDelete: Cascade)
+  duplicateOfProspect   Prospect?            @relation("DuplicateProspect", fields: [duplicateOfProspectId], references: [id], onDelete: SetNull)
+  createdProspect       Prospect?            @relation("CreatedProspect", fields: [createdProspectId], references: [id], onDelete: SetNull)
+  createdOpportunity    Opportunity?         @relation("CreatedOpportunity", fields: [createdOpportunityId], references: [id], onDelete: SetNull)
+
+  @@unique([importId, rowNumber])
+  @@index([importId, status])
+  @@map("import_rows")
+}
+
+model AuditLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorUserId  String   @map("actor_user_id") @db.Uuid
+  action       String
+  entityType   String   @map("entity_type")
+  entityId     String   @map("entity_id")
+  previousData Json?    @map("previous_data")
+  newData      Json?    @map("new_data")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor        User     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
 }

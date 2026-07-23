@@ -66,11 +66,18 @@ export const feedbackInputSchema = z
     },
   );
 
-export const externalUrlSchema = z
-  .url()
-  .refine((value) => ["http:", "https:"].includes(new URL(value).protocol), {
+export const externalUrlSchema = z.url().refine(
+  (value) => {
+    try {
+      return ["http:", "https:"].includes(new URL(value).protocol);
+    } catch {
+      return false;
+    }
+  },
+  {
     message: "Le protocole du lien n’est pas autorisé.",
-  });
+  },
+);
 
 const phoneSchema = z
   .string()

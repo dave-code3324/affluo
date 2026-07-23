@@ -1,6 +1,7 @@
 import {
   ContactabilityStatus,
   OpportunityStatus,
+  OpportunityReviewStatus,
   VerificationStatus,
   WeeklyBatchStatus,
 } from "@prisma/client";
@@ -101,6 +102,10 @@ async function createOpportunity({
       whyNow: "Le moment est pertinent pour initier une conversation.",
       relevanceScore: 90,
       status,
+      reviewStatus:
+        status === OpportunityStatus.PUBLISHED
+          ? OpportunityReviewStatus.APPROVED
+          : OpportunityReviewStatus.TO_REVIEW,
       contactabilityStatus,
     },
   });
