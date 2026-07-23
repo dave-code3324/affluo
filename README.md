@@ -1,8 +1,8 @@
 # Affluo
 
 Affluo est un moteur de prospection destiné aux conseillers en gestion de
-patrimoine. Ce dépôt contient le socle du MVP, l’authentification et
-l’onboarding initial du cabinet.
+patrimoine. Ce dépôt contient le socle du MVP, l’authentification, l’onboarding
+du cabinet et la consultation sécurisée des sélections hebdomadaires.
 
 ## Prérequis
 
@@ -27,7 +27,9 @@ l’onboarding initial du cabinet.
    Renseignez au minimum `NEXT_PUBLIC_SUPABASE_URL`,
    `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `DATABASE_URL` et `DIRECT_URL` avec
    les valeurs du panneau **Connect** de votre projet Supabase. La clé
-   `service_role` n’est ni nécessaire ni utilisée. Ne commitez jamais `.env`.
+   `service_role` n’est nécessaire que pour le seed local optionnel décrit
+   plus bas : elle n’est jamais lue par l’application. Ne commitez jamais
+   `.env`.
 
 3. Appliquez la migration Supabase :
 
@@ -36,9 +38,10 @@ l’onboarding initial du cabinet.
    npx supabase db push
    ```
 
-   La migration `supabase/migrations/202607230001_auth_onboarding.sql` crée les
-   tables, les politiques RLS et la fonction atomique d’onboarding. Elle peut
-   également être exécutée depuis le SQL Editor de Supabase.
+   Les migrations créent le modèle d’authentification et d’onboarding, le
+   modèle minimal des sélections hebdomadaires, leurs politiques RLS et les
+   garde-fous de publication. Elles peuvent également être exécutées dans
+   l’ordre depuis le SQL Editor de Supabase.
 
 4. Générez le client Prisma :
 
@@ -53,6 +56,33 @@ l’onboarding initial du cabinet.
    ```
 
    Ouvrez ensuite [http://localhost:3000](http://localhost:3000).
+
+## Données de démonstration
+
+Le seed optionnel crée deux cabinets isolés, leurs utilisateurs et des lots
+publiés et brouillons. Toutes les identités et coordonnées sont fictives
+(`example.com` et profils LinkedIn explicitement marqués comme démo).
+
+1. Ajoutez uniquement dans votre `.env` local :
+
+   ```text
+   SUPABASE_SERVICE_ROLE_KEY=...
+   DEMO_USER_PASSWORD=...
+   ```
+
+2. Exécutez :
+
+   ```bash
+   npm run db:seed
+   ```
+
+3. Connectez-vous avec `cgp.alpha@demo.affluo.local` ou
+   `cgp.beta@demo.affluo.local` et le mot de passe choisi. Le seed est
+   idempotent et peut être rejoué.
+
+La clé `service_role` sert exclusivement à créer les deux comptes Auth depuis
+le script local. Elle ne doit jamais être configurée comme variable publique,
+embarquée dans Vercel ou commitée.
 
 ## Configuration Supabase Auth
 
@@ -84,6 +114,7 @@ personnalisé supplémentaire.
 | `npm run typecheck`       | Vérifie TypeScript en mode strict            |
 | `npm run test`            | Exécute les tests unitaires avec Vitest      |
 | `npm run test:e2e`        | Exécute les tests navigateur avec Playwright |
+| `npm run db:seed`         | Charge les données de démonstration locales  |
 | `npm run prisma:generate` | Génère le client Prisma                      |
 | `npm run prisma:validate` | Valide le schéma Prisma                      |
 
@@ -91,6 +122,22 @@ Avant le premier test end-to-end, installez Chromium :
 
 ```bash
 npx playwright install chromium
+```
+
+Le scénario Playwright authentifié est exécuté lorsqu’un projet Supabase a été
+migré et seedé, avec :
+
+```bash
+E2E_DEMO_USER_PASSWORD="<mot-de-passe-du-seed>" npm run test:e2e
+```
+
+Sans cette variable, le scénario de démonstration est ignoré ; les parcours
+publics restent testés. Les tests d’intégration Prisma s’exécutent en CI contre
+un PostgreSQL éphémère. En local, utilisez une base de test dédiée :
+
+```bash
+npx prisma db push --skip-generate
+RUN_DATABASE_TESTS=true npm run test
 ```
 
 ## Architecture
@@ -113,7 +160,27 @@ qu’à un seul cabinet dans ce MVP.
 
 Le wizard d’onboarding est le seul composant client significatif : il conserve
 les réponses entre les trois écrans de saisie sans rechargement. Les pages
-d’authentification et le dashboard restent des Server Components.
+d’authentification, la sélection et le détail restent des Server Components.
+La frontière d’erreur des opportunités est un composant client, car le bouton
+de nouvelle tentative appelle le mécanisme `reset` de Next.js.
+
+### Sélections hebdomadaires
+
+Les données sont volontairement minimales :
+
+- `weekly_batches` regroupe la sélection d’un cabinet pour une semaine ;
+- `prospects` porte l’identité professionnelle et les canaux de contact ;
+- `opportunities` associe un prospect, un lot et le cabinet destinataire.
+
+Seul le dernier lot `PUBLISHED` du cabinet connecté est lu. Une opportunité
+doit elle-même être `PUBLISHED`, contactable et rattachée au même cabinet. Les
+brouillons, les contacts non exploitables et les lots d’un autre tenant sont
+exclus côté requête serveur et côté RLS. Les pages consomment des DTO explicites
+et ne reçoivent jamais les enregistrements Prisma complets.
+
+Le remplissage métier des lots reste manuel à ce stade, via SQL, Prisma Studio
+ou un traitement interne futur. Aucun scoring, enrichissement, CRM ou appel à
+un service externe n’est implémenté.
 
 Les intégrations OpenAI, Resend et Stripe restent hors scope et ne sont jamais
 appelées.

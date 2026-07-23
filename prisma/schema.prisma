@@ -8,6 +8,39 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum WeeklyBatchStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@map("weekly_batch_status")
+}
+
+enum EmailVerificationStatus {
+  UNVERIFIED
+  LIKELY
+  VERIFIED
+  INVALID
+
+  @@map("email_verification_status")
+}
+
+enum ContactabilityStatus {
+  NOT_CONTACTABLE
+  PARTIALLY_VERIFIED
+  CONTACTABLE
+
+  @@map("contactability_status")
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  DISMISSED
+
+  @@map("opportunity_status")
+}
+
 model User {
   id               String       @id @db.Uuid
   email            String       @unique
@@ -29,6 +62,8 @@ model Firm {
   updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
   members               FirmMember[]
   preferences           FirmPreference?
+  weeklyBatches         WeeklyBatch[]
+  opportunities         Opportunity[]
 
   @@map("firms")
 }
@@ -48,13 +83,74 @@ model FirmMember {
 }
 
 model FirmPreference {
-  firmId                  String   @id @map("firm_id") @db.Uuid
-  nationwide              Boolean  @default(false)
-  prospectingDepartments  String[] @default([]) @map("prospecting_departments")
-  targetProfiles          String[] @default([]) @map("target_profiles")
-  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  firm                    Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  firmId                 String   @id @map("firm_id") @db.Uuid
+  nationwide             Boolean  @default(false)
+  prospectingDepartments String[] @default([]) @map("prospecting_departments")
+  targetProfiles         String[] @default([]) @map("target_profiles")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firm                   Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
 
   @@map("firm_preferences")
+}
+
+model WeeklyBatch {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firmId        String            @map("firm_id") @db.Uuid
+  weekStart     DateTime          @map("week_start") @db.Date
+  weekEnd       DateTime          @map("week_end") @db.Date
+  status        WeeklyBatchStatus @default(DRAFT)
+  publishedAt   DateTime?         @map("published_at") @db.Timestamptz(6)
+  summary       String?
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firm          Firm              @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+
+  @@unique([firmId, weekStart])
+  @@index([firmId, status, publishedAt])
+  @@map("weekly_batches")
+}
+
+model Prospect {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firstName               String                  @map("first_name")
+  lastName                String                  @map("last_name")
+  jobTitle                String                  @map("job_title")
+  companyName             String                  @map("company_name")
+  city                    String
+  department              String
+  linkedinUrl             String?                 @map("linkedin_url")
+  professionalEmail       String?                 @map("professional_email")
+  emailVerificationStatus EmailVerificationStatus @default(UNVERIFIED) @map("email_verification_status")
+  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  opportunities           Opportunity[]
+
+  @@index([department])
+  @@map("prospects")
+}
+
+model Opportunity {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firmId               String               @map("firm_id") @db.Uuid
+  weeklyBatchId        String               @map("weekly_batch_id") @db.Uuid
+  prospectId           String               @map("prospect_id") @db.Uuid
+  title                String
+  signalType           String               @map("signal_type")
+  signalSummary        String               @map("signal_summary")
+  whyNow               String               @map("why_now")
+  relevanceScore       Int                  @map("relevance_score")
+  contactabilityStatus ContactabilityStatus @default(NOT_CONTACTABLE) @map("contactability_status")
+  status               OpportunityStatus    @default(DRAFT)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firm                 Firm                 @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  weeklyBatch          WeeklyBatch          @relation(fields: [weeklyBatchId], references: [id], onDelete: Cascade)
+  prospect             Prospect             @relation(fields: [prospectId], references: [id], onDelete: Restrict)
+
+  @@unique([weeklyBatchId, prospectId])
+  @@index([firmId, status])
+  @@index([weeklyBatchId, status, relevanceScore])
+  @@map("opportunities")
 }
