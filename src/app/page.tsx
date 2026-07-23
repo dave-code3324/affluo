@@ -1,3 +1,8 @@
+import Link from "next/link";
+
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
 export default function Home() {
   return (
     <main className="bg-navy text-ivory relative flex min-h-screen items-center overflow-hidden px-6 py-16">
@@ -21,7 +26,20 @@ export default function Home() {
         <p className="text-ivory/80 mt-7 max-w-3xl text-xl leading-relaxed sm:text-3xl sm:leading-snug">
           Les meilleures opportunités patrimoniales, avant tout le monde.
         </p>
-        <p className="text-ivory/50 mt-12 text-sm">Bientôt disponible</p>
+        <div className="mt-10 flex flex-wrap gap-3">
+          <Link href="/signup" className={buttonVariants()}>
+            Créer mon espace
+          </Link>
+          <Link
+            href="/login"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "text-ivory border border-white/15 hover:bg-white/10",
+            )}
+          >
+            Se connecter
+          </Link>
+        </div>
       </section>
     </main>
   );

@@ -8,4 +8,53 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Domain models will be introduced with their corresponding product features.
+model User {
+  id               String       @id @db.Uuid
+  email            String       @unique
+  emailConfirmedAt DateTime?    @map("email_confirmed_at") @db.Timestamptz(6)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  memberships      FirmMember[]
+
+  @@map("users")
+}
+
+model Firm {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String
+  city                  String
+  department            String
+  onboardingCompletedAt DateTime?       @map("onboarding_completed_at") @db.Timestamptz(6)
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  members               FirmMember[]
+  preferences           FirmPreference?
+
+  @@map("firms")
+}
+
+model FirmMember {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firmId    String   @map("firm_id") @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  role      String   @default("owner")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  firm      Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([firmId, userId])
+  @@index([firmId])
+  @@map("firm_members")
+}
+
+model FirmPreference {
+  firmId                  String   @id @map("firm_id") @db.Uuid
+  nationwide              Boolean  @default(false)
+  prospectingDepartments  String[] @default([]) @map("prospecting_departments")
+  targetProfiles          String[] @default([]) @map("target_profiles")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firm                    Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+
+  @@map("firm_preferences")
+}

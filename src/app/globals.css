@@ -3,6 +3,8 @@
 @theme inline {
   --color-navy: #07182e;
   --color-gold: #c6a15b;
+  --color-gold-dark: #8d6d32;
+  --color-gold-light: #d8b978;
   --color-ivory: #f5f1e8;
   --font-sans:
     Arial, "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, sans-serif;
