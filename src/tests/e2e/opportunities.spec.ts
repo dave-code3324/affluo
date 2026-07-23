@@ -8,7 +8,7 @@ test.describe("weekly opportunity demo", () => {
     "E2E_DEMO_USER_PASSWORD is required for the seeded Supabase scenario.",
   );
 
-  test("opens a selection and protects another firm's detail", async ({
+  test("decides from a sourced sheet and protects another firm's detail", async ({
     page,
   }) => {
     await page.goto("/login");
@@ -26,6 +26,22 @@ test.describe("weekly opportunity demo", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Claire Martin" }),
     ).toBeVisible();
+    await expect(page.getByText("Cession partielle annoncée")).toBeVisible();
+    await expect(
+      page.getByText("Journal économique de démonstration"),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Copier l’email" }).click();
+    await expect(page.getByText("Email copié")).toBeVisible();
+
+    await page.getByRole("button", { name: /À contacter/ }).click();
+    await expect(
+      page.getByText("Votre décision est enregistrée."),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: /À contacter/ }),
+    ).toHaveAttribute("aria-pressed", "true");
 
     await page.goto(
       "/dashboard/opportunities/46000000-0000-4000-8000-000000000046",

@@ -1,7 +1,8 @@
 import {
+  ContactDetailType,
   ContactabilityStatus,
-  EmailVerificationStatus,
   OpportunityStatus,
+  VerificationStatus,
 } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
@@ -58,7 +59,7 @@ describe("opportunity domain", () => {
     expect(
       canPublishOpportunity({
         contactabilityStatus: ContactabilityStatus.NOT_CONTACTABLE,
-        emailVerificationStatus: EmailVerificationStatus.VERIFIED,
+        emailVerificationStatus: VerificationStatus.VERIFIED,
         linkedinUrl: "https://www.linkedin.com/in/demo",
         professionalEmail: "demo@example.com",
       }),
@@ -69,7 +70,7 @@ describe("opportunity domain", () => {
     expect(
       canPublishOpportunity({
         contactabilityStatus: ContactabilityStatus.CONTACTABLE,
-        emailVerificationStatus: EmailVerificationStatus.UNVERIFIED,
+        emailVerificationStatus: VerificationStatus.UNVERIFIED,
         linkedinUrl: null,
         professionalEmail: "demo@example.com",
       }),
@@ -78,9 +79,27 @@ describe("opportunity domain", () => {
     expect(
       canPublishOpportunity({
         contactabilityStatus: ContactabilityStatus.CONTACTABLE,
-        emailVerificationStatus: EmailVerificationStatus.VERIFIED,
+        emailVerificationStatus: VerificationStatus.VERIFIED,
         linkedinUrl: null,
         professionalEmail: "demo@example.com",
+      }),
+    ).toBe(true);
+  });
+
+  it("accepts a verified normalized contact channel for publication", () => {
+    expect(
+      canPublishOpportunity({
+        contactDetails: [
+          {
+            type: ContactDetailType.LINKEDIN,
+            value: "https://www.linkedin.com/in/demo-profile",
+            verificationStatus: VerificationStatus.VERIFIED,
+          },
+        ],
+        contactabilityStatus: ContactabilityStatus.CONTACTABLE,
+        emailVerificationStatus: VerificationStatus.UNVERIFIED,
+        linkedinUrl: null,
+        professionalEmail: null,
       }),
     ).toBe(true);
   });

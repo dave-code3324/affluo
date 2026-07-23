@@ -2,7 +2,8 @@
 
 Affluo est un moteur de prospection destiné aux conseillers en gestion de
 patrimoine. Ce dépôt contient le socle du MVP, l’authentification, l’onboarding
-du cabinet et la consultation sécurisée des sélections hebdomadaires.
+du cabinet, la consultation sécurisée des sélections hebdomadaires et la fiche
+prospect orientée décision.
 
 ## Prérequis
 
@@ -62,6 +63,9 @@ du cabinet et la consultation sécurisée des sélections hebdomadaires.
 Le seed optionnel crée deux cabinets isolés, leurs utilisateurs et des lots
 publiés et brouillons. Toutes les identités et coordonnées sont fictives
 (`example.com` et profils LinkedIn explicitement marqués comme démo).
+La première opportunité contient plusieurs sources, un email vérifié, un profil
+LinkedIn contrôlé manuellement, des hypothèses patrimoniales et une coordonnée
+invalide volontairement masquée.
 
 1. Ajoutez uniquement dans votre `.env` local :
 
@@ -162,7 +166,10 @@ Le wizard d’onboarding est le seul composant client significatif : il conserve
 les réponses entre les trois écrans de saisie sans rechargement. Les pages
 d’authentification, la sélection et le détail restent des Server Components.
 La frontière d’erreur des opportunités est un composant client, car le bouton
-de nouvelle tentative appelle le mécanisme `reset` de Next.js.
+de nouvelle tentative appelle le mécanisme `reset` de Next.js. Sur la fiche,
+seuls le bouton de copie et le formulaire de décision sont clients : ils
+nécessitent respectivement l’API du presse-papiers et un retour immédiat
+pendant la mutation.
 
 ### Sélections hebdomadaires
 
@@ -181,6 +188,41 @@ et ne reçoivent jamais les enregistrements Prisma complets.
 Le remplissage métier des lots reste manuel à ce stade, via SQL, Prisma Studio
 ou un traitement interne futur. Aucun scoring, enrichissement, CRM ou appel à
 un service externe n’est implémenté.
+
+### Fiche prospect et décision
+
+La fiche `/dashboard/opportunities/[opportunityId]` sépare explicitement :
+
+- les **faits vérifiés**, issus de l’identité professionnelle, des coordonnées
+  valides et des signaux sourcés ;
+- les **estimations Affluo**, limitées à la confiance et à la contactabilité ;
+- les **hypothèses**, toujours accompagnées d’une mention précisant qu’elles
+  ne décrivent pas une situation personnelle confirmée.
+
+Le modèle ajoute :
+
+- `signals` et `opportunity_signals` pour rattacher une ou plusieurs sources à
+  une opportunité ;
+- `contact_details` pour les coordonnées multiples et leur vérification ;
+- `opportunity_feedback` pour une décision commerciale minimale et modifiable.
+
+La décision n’est ni une tâche, ni une interaction CRM. Une seule valeur
+courante est conservée par opportunité et cabinet : `TO_CONTACT`,
+`TO_MONITOR` ou `NOT_RELEVANT`.
+
+### Règles de sécurité de la fiche
+
+Le cabinet et l’utilisateur proviennent exclusivement de la session Supabase.
+Le client ne transmet jamais de `firmId`. Chaque lecture et mutation exige
+simultanément l’identifiant de l’opportunité, le cabinet courant, le statut
+`PUBLISHED` de l’opportunité et celui de son lot. Une opportunité inaccessible
+retourne `404`, sans indiquer si elle existe dans un autre cabinet.
+
+Les mêmes relations sont vérifiées par les contraintes SQL et les politiques
+RLS pour les signaux, coordonnées, sources et décisions. Les coordonnées
+`INVALID`, les signaux `REJECTED` et les URL autres que HTTP(S) sont exclus du
+DTO avant rendu. Les erreurs côté utilisateur restent génériques et n’exposent
+ni requête, ni erreur Prisma, ni identifiant d’un autre tenant.
 
 Les intégrations OpenAI, Resend et Stripe restent hors scope et ne sont jamais
 appelées.
