@@ -19,7 +19,11 @@ const navigation: Array<{
   icon: LucideIcon;
   label: string;
 }> = [
-  { href: "/dashboard", icon: Sparkles, label: "Opportunités" },
+  {
+    href: "/dashboard/opportunities",
+    icon: Sparkles,
+    label: "Opportunités",
+  },
   { href: "/dashboard/history", icon: Clock3, label: "Historique" },
   { href: "/dashboard/settings", icon: Settings, label: "Paramètres" },
 ];
