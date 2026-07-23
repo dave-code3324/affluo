@@ -3,7 +3,8 @@
 Affluo est un moteur de prospection destiné aux conseillers en gestion de
 patrimoine. Ce dépôt contient le socle du MVP, l’authentification, l’onboarding
 du cabinet, la consultation sécurisée des sélections hebdomadaires et la fiche
-prospect orientée décision.
+prospect orientée décision. Il comprend également l’outil interne d’import CSV
+et de qualification manuelle des opportunités.
 
 ## Prérequis
 
@@ -60,8 +61,9 @@ prospect orientée décision.
 
 ## Données de démonstration
 
-Le seed optionnel crée deux cabinets isolés, leurs utilisateurs et des lots
-publiés et brouillons. Toutes les identités et coordonnées sont fictives
+Le seed optionnel crée deux cabinets isolés, deux utilisateurs CGP, un
+utilisateur administrateur et des lots publiés et brouillons. Toutes les
+identités et coordonnées sont fictives
 (`example.com` et profils LinkedIn explicitement marqués comme démo).
 La première opportunité contient plusieurs sources, un email vérifié, un profil
 LinkedIn contrôlé manuellement, des hypothèses patrimoniales et une coordonnée
@@ -81,8 +83,9 @@ invalide volontairement masquée.
    ```
 
 3. Connectez-vous avec `cgp.alpha@demo.affluo.local` ou
-   `cgp.beta@demo.affluo.local` et le mot de passe choisi. Le seed est
-   idempotent et peut être rejoué.
+   `cgp.beta@demo.affluo.local` pour le parcours CGP, ou avec
+   `admin@demo.affluo.local` pour l’espace interne. Utilisez le mot de passe
+   choisi. Le seed est idempotent et peut être rejoué.
 
 La clé `service_role` sert exclusivement à créer les deux comptes Auth depuis
 le script local. Elle ne doit jamais être configurée comme variable publique,
@@ -210,6 +213,47 @@ La décision n’est ni une tâche, ni une interaction CRM. Une seule valeur
 courante est conservée par opportunité et cabinet : `TO_CONTACT`,
 `TO_MONITOR` ou `NOT_RELEVANT`.
 
+### Import CSV et qualification interne
+
+L’espace `/admin` est réservé aux utilisateurs dont le rôle applicatif est
+`ADMIN`. Il permet de prévisualiser un CSV, de résoudre explicitement les
+doublons, de lancer un import relançable et de qualifier les opportunités
+créées. Le modèle attendu peut être téléchargé depuis l’écran d’import ; une
+fixture plus complète est disponible dans
+`fixtures/imports/affluo-demo-import.csv`.
+
+Le parseur accepte les fichiers UTF-8 séparés par une virgule ou un
+point-virgule, dans la limite de `CSV_IMPORT_MAX_BYTES` et
+`CSV_IMPORT_MAX_ROWS`. Chaque valeur brute est conservée séparément de sa
+version normalisée. Les erreurs sont rattachées à une ligne et un champ, puis
+exportables en CSV. Les cellules exportées qui commencent comme une formule de
+tableur sont neutralisées.
+
+La détection des doublons suit deux niveaux :
+
+- correspondance forte sur l’email, le téléphone ou l’URL LinkedIn normalisés ;
+- correspondance secondaire sur l’identité, complétée par l’entreprise, son
+  domaine, la localisation ou la fonction.
+
+Un nom seul ne déclenche jamais de fusion. L’administrateur doit choisir entre
+ignorer la ligne, mettre à jour le prospect identifié ou créer une identité
+distincte. L’import traite chaque ligne dans une transaction et mémorise son
+état ; le relancer ne recrée pas les lignes déjà importées.
+
+Les opportunités entrent sans cabinet ni lot, avec les statuts `DRAFT` et
+`TO_REVIEW`. L’écran de revue permet les corrections, la prise en charge, le
+renvoi en correction, l’approbation ou le rejet motivé. Une approbation ne
+publie et n’assigne jamais l’opportunité. Elle exige une source exploitable et
+au moins une coordonnée professionnelle utilisable. Une URL LinkedIn importée
+n’est jamais considérée comme vérifiée automatiquement : la validation
+manuelle enregistre l’administrateur, la date et la méthode.
+
+Toutes les mutations d’administration revérifient le rôle côté serveur. Les
+changements sensibles produisent un journal d’audit avant/après. Le seul
+composant client ajouté pour ce parcours affiche localement le nom et la taille
+du fichier sélectionné ; le parsing, les droits et l’écriture restent côté
+serveur.
+
 ### Règles de sécurité de la fiche
 
 Le cabinet et l’utilisateur proviennent exclusivement de la session Supabase.
@@ -224,8 +268,9 @@ RLS pour les signaux, coordonnées, sources et décisions. Les coordonnées
 DTO avant rendu. Les erreurs côté utilisateur restent génériques et n’exposent
 ni requête, ni erreur Prisma, ni identifiant d’un autre tenant.
 
-Les intégrations OpenAI, Resend et Stripe restent hors scope et ne sont jamais
-appelées.
+L’import ne publie aucune donnée, n’assigne aucun cabinet et ne déclenche ni
+CRM, ni enrichissement, ni scoring. Les intégrations OpenAI, Resend et Stripe
+restent hors scope et ne sont jamais appelées.
 
 ## Déploiement
 

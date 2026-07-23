@@ -46,8 +46,9 @@ export async function updateSession(request: NextRequest) {
   const userId = data?.claims?.sub;
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
   const isOnboarding = request.nextUrl.pathname.startsWith("/onboarding");
+  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
 
-  if (!userId && (isDashboard || isOnboarding)) {
+  if (!userId && (isAdmin || isDashboard || isOnboarding)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);

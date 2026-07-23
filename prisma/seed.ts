@@ -3,7 +3,9 @@ import {
   ContactDetailType,
   ContactabilityStatus,
   OpportunityStatus,
+  OpportunityReviewStatus,
   SignalVerificationStatus,
+  UserRole,
   VerificationStatus,
   PrismaClient,
   WeeklyBatchStatus,
@@ -22,6 +24,9 @@ const DEMO = {
     email: "cgp.beta@demo.affluo.local",
     firmId: "20000000-0000-4000-8000-000000000002",
     firmName: "Cabinet Boréal",
+  },
+  admin: {
+    email: "admin@demo.affluo.local",
   },
 } as const;
 
@@ -464,18 +469,23 @@ async function ensureAuthUser(email: string, password: string) {
 }
 
 async function seedFirm(
-  demo: (typeof DEMO)[keyof typeof DEMO],
+  demo: typeof DEMO.alpha | typeof DEMO.beta,
   userId: string,
   city: string,
   department: string,
 ) {
   await prisma.user.upsert({
     where: { id: userId },
-    update: { email: demo.email, emailConfirmedAt: new Date() },
+    update: {
+      email: demo.email,
+      emailConfirmedAt: new Date(),
+      role: UserRole.MEMBER,
+    },
     create: {
       id: userId,
       email: demo.email,
       emailConfirmedAt: new Date(),
+      role: UserRole.MEMBER,
     },
   });
   await prisma.firm.upsert({
@@ -517,13 +527,28 @@ async function seedFirm(
 
 async function main() {
   const password = requiredEnvironment("DEMO_USER_PASSWORD");
-  const [alphaUserId, betaUserId] = await Promise.all([
+  const [alphaUserId, betaUserId, adminUserId] = await Promise.all([
     ensureAuthUser(DEMO.alpha.email, password),
     ensureAuthUser(DEMO.beta.email, password),
+    ensureAuthUser(DEMO.admin.email, password),
   ]);
 
   await seedFirm(DEMO.alpha, alphaUserId, "Lyon", "69");
   await seedFirm(DEMO.beta, betaUserId, "Bordeaux", "33");
+  await prisma.user.upsert({
+    where: { id: adminUserId },
+    update: {
+      email: DEMO.admin.email,
+      emailConfirmedAt: new Date(),
+      role: UserRole.ADMIN,
+    },
+    create: {
+      id: adminUserId,
+      email: DEMO.admin.email,
+      emailConfirmedAt: new Date(),
+      role: UserRole.ADMIN,
+    },
+  });
 
   const batches = [
     {
@@ -612,6 +637,10 @@ async function main() {
   for (const opportunity of opportunitySeeds) {
     const data = {
       ...opportunity,
+      reviewStatus:
+        opportunity.status === OpportunityStatus.PUBLISHED
+          ? OpportunityReviewStatus.APPROVED
+          : OpportunityReviewStatus.TO_REVIEW,
       potentialNeeds:
         "potentialNeeds" in opportunity
           ? [...opportunity.potentialNeeds]
@@ -638,7 +667,7 @@ async function main() {
   }
 
   console.info(
-    `Seed terminé : ${DEMO.alpha.email} et ${DEMO.beta.email}. Données strictement fictives.`,
+    `Seed terminé : ${DEMO.alpha.email}, ${DEMO.beta.email} et ${DEMO.admin.email}. Données strictement fictives.`,
   );
 }
 

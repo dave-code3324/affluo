@@ -5,6 +5,7 @@ import {
   FeedbackDecision,
   FeedbackReason,
   OpportunityStatus,
+  OpportunityReviewStatus,
   SignalVerificationStatus,
   VerificationStatus,
   WeeklyBatchStatus,
@@ -146,6 +147,7 @@ databaseDescribe("prospect decision persistence", () => {
           relevanceScore: 95,
           contactabilityStatus: ContactabilityStatus.CONTACTABLE,
           status: OpportunityStatus.PUBLISHED,
+          reviewStatus: OpportunityReviewStatus.APPROVED,
           confidenceLevel: ConfidenceLevel.HIGH,
           qualificationSummary: "Profil prioritaire du cabinet.",
           potentialNeeds: ["Diversification du patrimoine"],
@@ -162,6 +164,7 @@ databaseDescribe("prospect decision persistence", () => {
           relevanceScore: 90,
           contactabilityStatus: ContactabilityStatus.CONTACTABLE,
           status: OpportunityStatus.PUBLISHED,
+          reviewStatus: OpportunityReviewStatus.APPROVED,
         },
       ],
     });

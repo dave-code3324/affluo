@@ -1,6 +1,7 @@
 import {
   ContactDetailType,
   ContactabilityStatus,
+  OpportunityReviewStatus,
   OpportunityStatus,
   Prisma,
   SignalVerificationStatus,
@@ -56,6 +57,7 @@ type OpportunityRecord = Prisma.OpportunityGetPayload<{
 
 const readableContactFilter: Prisma.OpportunityWhereInput = {
   status: OpportunityStatus.PUBLISHED,
+  reviewStatus: OpportunityReviewStatus.APPROVED,
   contactabilityStatus: {
     not: ContactabilityStatus.NOT_CONTACTABLE,
   },
@@ -270,7 +272,7 @@ export async function getPublishedOpportunityDetail({
     },
   });
 
-  if (!record?.weeklyBatch.publishedAt) {
+  if (!record?.weeklyBatch?.publishedAt) {
     return null;
   }
 
