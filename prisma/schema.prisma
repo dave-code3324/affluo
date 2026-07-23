@@ -16,13 +16,13 @@ enum WeeklyBatchStatus {
   @@map("weekly_batch_status")
 }
 
-enum EmailVerificationStatus {
+enum VerificationStatus {
   UNVERIFIED
   LIKELY
   VERIFIED
   INVALID
 
-  @@map("email_verification_status")
+  @@map("verification_status")
 }
 
 enum ContactabilityStatus {
@@ -41,29 +41,76 @@ enum OpportunityStatus {
   @@map("opportunity_status")
 }
 
+enum ConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@map("confidence_level")
+}
+
+enum SignalVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+
+  @@map("signal_verification_status")
+}
+
+enum ContactDetailType {
+  PROFESSIONAL_EMAIL
+  PROFESSIONAL_PHONE
+  LINKEDIN
+  COMPANY_WEBSITE
+
+  @@map("contact_detail_type")
+}
+
+enum FeedbackDecision {
+  TO_CONTACT
+  TO_MONITOR
+  NOT_RELEVANT
+
+  @@map("feedback_decision")
+}
+
+enum FeedbackReason {
+  WRONG_PROFILE
+  WEAK_SIGNAL
+  WRONG_LOCATION
+  ALREADY_KNOWN
+  INSUFFICIENT_CONTACT_DETAILS
+  OTHER
+
+  @@map("feedback_reason")
+}
+
 model User {
-  id               String       @id @db.Uuid
-  email            String       @unique
-  emailConfirmedAt DateTime?    @map("email_confirmed_at") @db.Timestamptz(6)
-  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  memberships      FirmMember[]
+  id                    String                @id @db.Uuid
+  email                 String                @unique
+  emailConfirmedAt      DateTime?             @map("email_confirmed_at") @db.Timestamptz(6)
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  memberships           FirmMember[]
+  reviewedOpportunities Opportunity[]         @relation("OpportunityReviewer")
+  feedbacks             OpportunityFeedback[]
 
   @@map("users")
 }
 
 model Firm {
-  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                  String
   city                  String
   department            String
-  onboardingCompletedAt DateTime?       @map("onboarding_completed_at") @db.Timestamptz(6)
-  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  onboardingCompletedAt DateTime?             @map("onboarding_completed_at") @db.Timestamptz(6)
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
   members               FirmMember[]
   preferences           FirmPreference?
   weeklyBatches         WeeklyBatch[]
   opportunities         Opportunity[]
+  opportunityFeedbacks  OpportunityFeedback[]
 
   @@map("firms")
 }
@@ -113,44 +160,127 @@ model WeeklyBatch {
 }
 
 model Prospect {
-  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  firstName               String                  @map("first_name")
-  lastName                String                  @map("last_name")
-  jobTitle                String                  @map("job_title")
-  companyName             String                  @map("company_name")
-  city                    String
-  department              String
-  linkedinUrl             String?                 @map("linkedin_url")
-  professionalEmail       String?                 @map("professional_email")
-  emailVerificationStatus EmailVerificationStatus @default(UNVERIFIED) @map("email_verification_status")
-  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
-  opportunities           Opportunity[]
+  id                         String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firstName                  String             @map("first_name")
+  lastName                   String             @map("last_name")
+  jobTitle                   String             @map("job_title")
+  companyName                String             @map("company_name")
+  city                       String
+  department                 String
+  linkedinUrl                String?            @map("linkedin_url")
+  professionalEmail          String?            @map("professional_email")
+  emailVerificationStatus    VerificationStatus @default(UNVERIFIED) @map("email_verification_status")
+  professionalProfileSummary String?            @map("professional_profile_summary")
+  createdAt                  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  opportunities              Opportunity[]
+  signals                    Signal[]
+  contactDetails             ContactDetail[]
 
   @@index([department])
   @@map("prospects")
 }
 
 model Opportunity {
-  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  firmId               String               @map("firm_id") @db.Uuid
-  weeklyBatchId        String               @map("weekly_batch_id") @db.Uuid
-  prospectId           String               @map("prospect_id") @db.Uuid
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firmId               String                @map("firm_id") @db.Uuid
+  weeklyBatchId        String                @map("weekly_batch_id") @db.Uuid
+  prospectId           String                @map("prospect_id") @db.Uuid
   title                String
-  signalType           String               @map("signal_type")
-  signalSummary        String               @map("signal_summary")
-  whyNow               String               @map("why_now")
-  relevanceScore       Int                  @map("relevance_score")
-  contactabilityStatus ContactabilityStatus @default(NOT_CONTACTABLE) @map("contactability_status")
-  status               OpportunityStatus    @default(DRAFT)
-  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
-  firm                 Firm                 @relation(fields: [firmId], references: [id], onDelete: Cascade)
-  weeklyBatch          WeeklyBatch          @relation(fields: [weeklyBatchId], references: [id], onDelete: Cascade)
-  prospect             Prospect             @relation(fields: [prospectId], references: [id], onDelete: Restrict)
+  signalType           String                @map("signal_type")
+  signalSummary        String                @map("signal_summary")
+  whyNow               String                @map("why_now")
+  relevanceScore       Int                   @map("relevance_score")
+  contactabilityStatus ContactabilityStatus  @default(NOT_CONTACTABLE) @map("contactability_status")
+  status               OpportunityStatus     @default(DRAFT)
+  confidenceLevel      ConfidenceLevel       @default(MEDIUM) @map("confidence_level")
+  qualificationSummary String?               @map("qualification_summary")
+  potentialNeeds       String[]              @default([]) @map("potential_needs")
+  reviewedAt           DateTime?             @map("reviewed_at") @db.Timestamptz(6)
+  reviewedBy           String?               @map("reviewed_by") @db.Uuid
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firm                 Firm                  @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  weeklyBatch          WeeklyBatch           @relation(fields: [weeklyBatchId], references: [id], onDelete: Cascade)
+  prospect             Prospect              @relation(fields: [prospectId], references: [id], onDelete: Restrict)
+  reviewer             User?                 @relation("OpportunityReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  signals              OpportunitySignal[]
+  feedbacks            OpportunityFeedback[]
 
   @@unique([weeklyBatchId, prospectId])
   @@index([firmId, status])
   @@index([weeklyBatchId, status, relevanceScore])
   @@map("opportunities")
+}
+
+model Signal {
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  prospectId         String                   @map("prospect_id") @db.Uuid
+  type               String
+  title              String
+  description        String
+  eventDate          DateTime?                @map("event_date") @db.Date
+  detectedAt         DateTime                 @map("detected_at") @db.Timestamptz(6)
+  sourceUrl          String?                  @map("source_url")
+  sourceName         String?                  @map("source_name")
+  sourcePublishedAt  DateTime?                @map("source_published_at") @db.Timestamptz(6)
+  verificationStatus SignalVerificationStatus @default(UNVERIFIED) @map("verification_status")
+  verifiedAt         DateTime?                @map("verified_at") @db.Timestamptz(6)
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+  prospect           Prospect                 @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  opportunities      OpportunitySignal[]
+
+  @@index([prospectId, verificationStatus])
+  @@map("signals")
+}
+
+model OpportunitySignal {
+  opportunityId String      @map("opportunity_id") @db.Uuid
+  signalId      String      @map("signal_id") @db.Uuid
+  isPrimary     Boolean     @default(false) @map("is_primary")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  signal        Signal      @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@id([opportunityId, signalId])
+  @@index([signalId])
+  @@map("opportunity_signals")
+}
+
+model ContactDetail {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  prospectId         String             @map("prospect_id") @db.Uuid
+  type               ContactDetailType
+  value              String
+  verificationStatus VerificationStatus @default(UNVERIFIED) @map("verification_status")
+  verificationMethod String?            @map("verification_method")
+  verifiedAt         DateTime?          @map("verified_at") @db.Timestamptz(6)
+  isPrimary          Boolean            @default(false) @map("is_primary")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  prospect           Prospect           @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@unique([prospectId, type, value])
+  @@index([prospectId, verificationStatus])
+  @@map("contact_details")
+}
+
+model OpportunityFeedback {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  opportunityId String           @map("opportunity_id") @db.Uuid
+  firmId        String           @map("firm_id") @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  decision      FeedbackDecision
+  reason        FeedbackReason?
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  opportunity   Opportunity      @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  firm          Firm             @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, firmId])
+  @@index([firmId, decision])
+  @@index([userId])
+  @@map("opportunity_feedback")
 }

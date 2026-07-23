@@ -1,7 +1,10 @@
 import {
+  ConfidenceLevel,
+  ContactDetailType,
   ContactabilityStatus,
-  EmailVerificationStatus,
   OpportunityStatus,
+  SignalVerificationStatus,
+  VerificationStatus,
   PrismaClient,
   WeeklyBatchStatus,
 } from "@prisma/client";
@@ -40,7 +43,7 @@ const prospectSeeds = [
     department: "69",
     linkedinUrl: "https://www.linkedin.com/in/demo-claire-martin",
     professionalEmail: "claire.martin@example.com",
-    emailVerificationStatus: EmailVerificationStatus.VERIFIED,
+    emailVerificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "32000000-0000-4000-8000-000000000032",
@@ -52,7 +55,7 @@ const prospectSeeds = [
     department: "69",
     linkedinUrl: null,
     professionalEmail: "julien.robert@example.com",
-    emailVerificationStatus: EmailVerificationStatus.LIKELY,
+    emailVerificationStatus: VerificationStatus.LIKELY,
   },
   {
     id: "33000000-0000-4000-8000-000000000033",
@@ -64,7 +67,7 @@ const prospectSeeds = [
     department: "42",
     linkedinUrl: "https://www.linkedin.com/in/demo-sophie-bernard",
     professionalEmail: null,
-    emailVerificationStatus: EmailVerificationStatus.UNVERIFIED,
+    emailVerificationStatus: VerificationStatus.UNVERIFIED,
   },
   {
     id: "34000000-0000-4000-8000-000000000034",
@@ -76,7 +79,7 @@ const prospectSeeds = [
     department: "74",
     linkedinUrl: "https://www.linkedin.com/in/demo-nicolas-petit",
     professionalEmail: "nicolas.petit@example.com",
-    emailVerificationStatus: EmailVerificationStatus.VERIFIED,
+    emailVerificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "35000000-0000-4000-8000-000000000035",
@@ -88,7 +91,7 @@ const prospectSeeds = [
     department: "38",
     linkedinUrl: null,
     professionalEmail: null,
-    emailVerificationStatus: EmailVerificationStatus.UNVERIFIED,
+    emailVerificationStatus: VerificationStatus.UNVERIFIED,
   },
   {
     id: "36000000-0000-4000-8000-000000000036",
@@ -100,7 +103,7 @@ const prospectSeeds = [
     department: "33",
     linkedinUrl: "https://www.linkedin.com/in/demo-thomas-dubois",
     professionalEmail: "thomas.dubois@example.com",
-    emailVerificationStatus: EmailVerificationStatus.VERIFIED,
+    emailVerificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "37000000-0000-4000-8000-000000000037",
@@ -112,7 +115,7 @@ const prospectSeeds = [
     department: "33",
     linkedinUrl: "https://www.linkedin.com/in/demo-amandine-leroy",
     professionalEmail: null,
-    emailVerificationStatus: EmailVerificationStatus.UNVERIFIED,
+    emailVerificationStatus: VerificationStatus.UNVERIFIED,
   },
   {
     id: "38000000-0000-4000-8000-000000000038",
@@ -124,7 +127,7 @@ const prospectSeeds = [
     department: "33",
     linkedinUrl: null,
     professionalEmail: "pierre.roux@example.com",
-    emailVerificationStatus: EmailVerificationStatus.UNVERIFIED,
+    emailVerificationStatus: VerificationStatus.UNVERIFIED,
   },
 ] as const;
 
@@ -142,6 +145,16 @@ const opportunitySeeds = [
     relevanceScore: 94,
     contactabilityStatus: ContactabilityStatus.CONTACTABLE,
     status: OpportunityStatus.PUBLISHED,
+    confidenceLevel: ConfidenceLevel.HIGH,
+    qualificationSummary:
+      "Dirigeante d’une PME régionale correspondant au ciblage prioritaire du cabinet.",
+    potentialNeeds: [
+      "Organisation d’un éventuel produit de cession",
+      "Diversification du patrimoine",
+      "Préparation de la transmission",
+      "Protection familiale",
+    ],
+    reviewedAt: new Date("2026-07-19T16:30:00.000Z"),
   },
   {
     id: "42000000-0000-4000-8000-000000000042",
@@ -239,6 +252,175 @@ const opportunitySeeds = [
     relevanceScore: 83,
     contactabilityStatus: ContactabilityStatus.PARTIALLY_VERIFIED,
     status: OpportunityStatus.PUBLISHED,
+  },
+] as const;
+
+const contactDetailSeeds = [
+  {
+    id: "51000000-0000-4000-8000-000000000051",
+    prospectId: prospectSeeds[0].id,
+    type: ContactDetailType.PROFESSIONAL_EMAIL,
+    value: "claire.martin@example.com",
+    verificationStatus: VerificationStatus.VERIFIED,
+    verificationMethod: "Vérification du domaine et contrôle manuel",
+    verifiedAt: new Date("2026-07-19T14:00:00.000Z"),
+    isPrimary: true,
+  },
+  {
+    id: "52000000-0000-4000-8000-000000000052",
+    prospectId: prospectSeeds[0].id,
+    type: ContactDetailType.LINKEDIN,
+    value: "https://www.linkedin.com/in/demo-claire-martin",
+    verificationStatus: VerificationStatus.VERIFIED,
+    verificationMethod: "Vérification manuelle du profil professionnel",
+    verifiedAt: new Date("2026-07-19T14:10:00.000Z"),
+    isPrimary: true,
+  },
+  {
+    id: "53000000-0000-4000-8000-000000000053",
+    prospectId: prospectSeeds[0].id,
+    type: ContactDetailType.COMPANY_WEBSITE,
+    value: "https://example.com/atelier-horizon",
+    verificationStatus: VerificationStatus.VERIFIED,
+    verificationMethod: "Site institutionnel",
+    verifiedAt: new Date("2026-07-19T14:15:00.000Z"),
+    isPrimary: true,
+  },
+  {
+    id: "54000000-0000-4000-8000-000000000054",
+    prospectId: prospectSeeds[0].id,
+    type: ContactDetailType.PROFESSIONAL_PHONE,
+    value: "+33 4 00 00 00 00",
+    verificationStatus: VerificationStatus.INVALID,
+    verificationMethod: "Numéro non attribué lors du contrôle",
+    verifiedAt: new Date("2026-07-19T14:20:00.000Z"),
+    isPrimary: false,
+  },
+  {
+    id: "55000000-0000-4000-8000-000000000055",
+    prospectId: prospectSeeds[1].id,
+    type: ContactDetailType.PROFESSIONAL_EMAIL,
+    value: "julien.robert@example.com",
+    verificationStatus: VerificationStatus.LIKELY,
+    verificationMethod: "Format professionnel et domaine actifs",
+    verifiedAt: null,
+    isPrimary: true,
+  },
+  {
+    id: "56000000-0000-4000-8000-000000000056",
+    prospectId: prospectSeeds[2].id,
+    type: ContactDetailType.LINKEDIN,
+    value: "https://www.linkedin.com/in/demo-sophie-bernard",
+    verificationStatus: VerificationStatus.VERIFIED,
+    verificationMethod: "Vérification manuelle du profil professionnel",
+    verifiedAt: new Date("2026-07-18T10:00:00.000Z"),
+    isPrimary: true,
+  },
+  {
+    id: "57000000-0000-4000-8000-000000000057",
+    prospectId: prospectSeeds[3].id,
+    type: ContactDetailType.PROFESSIONAL_EMAIL,
+    value: "nicolas.petit@example.com",
+    verificationStatus: VerificationStatus.VERIFIED,
+    verificationMethod: "Contrôle manuel",
+    verifiedAt: new Date("2026-07-18T11:00:00.000Z"),
+    isPrimary: true,
+  },
+  {
+    id: "58000000-0000-4000-8000-000000000058",
+    prospectId: prospectSeeds[5].id,
+    type: ContactDetailType.PROFESSIONAL_EMAIL,
+    value: "thomas.dubois@example.com",
+    verificationStatus: VerificationStatus.VERIFIED,
+    verificationMethod: "Contrôle du domaine professionnel",
+    verifiedAt: new Date("2026-07-18T12:00:00.000Z"),
+    isPrimary: true,
+  },
+  {
+    id: "59000000-0000-4000-8000-000000000059",
+    prospectId: prospectSeeds[6].id,
+    type: ContactDetailType.LINKEDIN,
+    value: "https://www.linkedin.com/in/demo-amandine-leroy",
+    verificationStatus: VerificationStatus.VERIFIED,
+    verificationMethod: "Vérification manuelle du profil professionnel",
+    verifiedAt: new Date("2026-07-18T13:00:00.000Z"),
+    isPrimary: true,
+  },
+  {
+    id: "5a000000-0000-4000-8000-00000000005a",
+    prospectId: prospectSeeds[7].id,
+    type: ContactDetailType.PROFESSIONAL_EMAIL,
+    value: "pierre.roux@example.com",
+    verificationStatus: VerificationStatus.UNVERIFIED,
+    verificationMethod: null,
+    verifiedAt: null,
+    isPrimary: true,
+  },
+] as const;
+
+const signalSeeds = [
+  {
+    id: "61000000-0000-4000-8000-000000000061",
+    prospectId: prospectSeeds[0].id,
+    type: "Gouvernance",
+    title: "Cession partielle annoncée",
+    description:
+      "Atelier Horizon a annoncé la cession de son activité logistique.",
+    eventDate: new Date("2026-07-14T00:00:00.000Z"),
+    detectedAt: new Date("2026-07-15T08:00:00.000Z"),
+    sourceUrl: "https://example.com/actualites/atelier-horizon-cession",
+    sourceName: "Journal économique de démonstration",
+    sourcePublishedAt: new Date("2026-07-14T07:00:00.000Z"),
+    verificationStatus: SignalVerificationStatus.VERIFIED,
+    verifiedAt: new Date("2026-07-19T15:00:00.000Z"),
+  },
+  {
+    id: "62000000-0000-4000-8000-000000000062",
+    prospectId: prospectSeeds[0].id,
+    type: "Gouvernance",
+    title: "Nomination d’une direction opérationnelle",
+    description:
+      "Une nouvelle directrice des opérations a rejoint l’entreprise.",
+    eventDate: new Date("2026-07-10T00:00:00.000Z"),
+    detectedAt: new Date("2026-07-11T09:00:00.000Z"),
+    sourceUrl: "https://example.com/entreprises/atelier-horizon-direction",
+    sourceName: "Registre professionnel de démonstration",
+    sourcePublishedAt: new Date("2026-07-10T11:00:00.000Z"),
+    verificationStatus: SignalVerificationStatus.VERIFIED,
+    verifiedAt: new Date("2026-07-19T15:10:00.000Z"),
+  },
+  {
+    id: "63000000-0000-4000-8000-000000000063",
+    prospectId: prospectSeeds[5].id,
+    type: "Capital",
+    title: "Ouverture minoritaire du capital",
+    description:
+      "Boréal Industrie a communiqué sur l’arrivée d’un partenaire minoritaire.",
+    eventDate: new Date("2026-07-16T00:00:00.000Z"),
+    detectedAt: new Date("2026-07-17T09:00:00.000Z"),
+    sourceUrl: "https://example.com/actualites/boreal-industrie",
+    sourceName: "Presse régionale de démonstration",
+    sourcePublishedAt: new Date("2026-07-16T10:00:00.000Z"),
+    verificationStatus: SignalVerificationStatus.VERIFIED,
+    verifiedAt: new Date("2026-07-19T15:20:00.000Z"),
+  },
+] as const;
+
+const opportunitySignalSeeds = [
+  {
+    opportunityId: opportunitySeeds[0].id,
+    signalId: signalSeeds[0].id,
+    isPrimary: true,
+  },
+  {
+    opportunityId: opportunitySeeds[0].id,
+    signalId: signalSeeds[1].id,
+    isPrimary: false,
+  },
+  {
+    opportunityId: opportunitySeeds[5].id,
+    signalId: signalSeeds[2].id,
+    isPrimary: true,
   },
 ] as const;
 
@@ -394,16 +576,64 @@ async function main() {
   for (const prospect of prospectSeeds) {
     await prisma.prospect.upsert({
       where: { id: prospect.id },
-      update: prospect,
-      create: prospect,
+      update: {
+        ...prospect,
+        professionalProfileSummary:
+          prospect.id === prospectSeeds[0].id
+            ? "Dirigeante de PME industrielle, active dans le développement et la gouvernance de son entreprise."
+            : null,
+      },
+      create: {
+        ...prospect,
+        professionalProfileSummary:
+          prospect.id === prospectSeeds[0].id
+            ? "Dirigeante de PME industrielle, active dans le développement et la gouvernance de son entreprise."
+            : null,
+      },
+    });
+  }
+
+  for (const contactDetail of contactDetailSeeds) {
+    await prisma.contactDetail.upsert({
+      where: { id: contactDetail.id },
+      update: contactDetail,
+      create: contactDetail,
+    });
+  }
+
+  for (const signal of signalSeeds) {
+    await prisma.signal.upsert({
+      where: { id: signal.id },
+      update: signal,
+      create: signal,
     });
   }
 
   for (const opportunity of opportunitySeeds) {
+    const data = {
+      ...opportunity,
+      potentialNeeds:
+        "potentialNeeds" in opportunity
+          ? [...opportunity.potentialNeeds]
+          : undefined,
+    };
     await prisma.opportunity.upsert({
       where: { id: opportunity.id },
-      update: opportunity,
-      create: opportunity,
+      update: data,
+      create: data,
+    });
+  }
+
+  for (const opportunitySignal of opportunitySignalSeeds) {
+    await prisma.opportunitySignal.upsert({
+      where: {
+        opportunityId_signalId: {
+          opportunityId: opportunitySignal.opportunityId,
+          signalId: opportunitySignal.signalId,
+        },
+      },
+      update: { isPrimary: opportunitySignal.isPrimary },
+      create: opportunitySignal,
     });
   }
 

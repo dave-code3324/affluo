@@ -1,7 +1,7 @@
 import {
   ContactabilityStatus,
-  EmailVerificationStatus,
   OpportunityStatus,
+  VerificationStatus,
   WeeklyBatchStatus,
 } from "@prisma/client";
 import { randomUUID } from "node:crypto";
@@ -47,7 +47,7 @@ async function createProspect(suffix: string, contactable = true) {
         ? `https://www.linkedin.com/in/${suffix.toLowerCase()}`
         : null,
       professionalEmail: null,
-      emailVerificationStatus: EmailVerificationStatus.UNVERIFIED,
+      emailVerificationStatus: VerificationStatus.UNVERIFIED,
     },
   });
   createdProspectIds.push(prospect.id);
