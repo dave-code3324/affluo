@@ -41,8 +41,14 @@ export type Database = {
           normalized_name: string;
           website: string | null;
           normalized_domain: string | null;
+          legal_name: string;
+          trade_name: string | null;
+          siren: string | null;
+          siret: string | null;
           city: string | null;
           department: string | null;
+          industry: string | null;
+          legal_form: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -52,8 +58,14 @@ export type Database = {
           normalized_name: string;
           website?: string | null;
           normalized_domain?: string | null;
+          legal_name: string;
+          trade_name?: string | null;
+          siren?: string | null;
+          siret?: string | null;
           city?: string | null;
           department?: string | null;
+          industry?: string | null;
+          legal_form?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -62,8 +74,14 @@ export type Database = {
           normalized_name?: string;
           website?: string | null;
           normalized_domain?: string | null;
+          legal_name?: string;
+          trade_name?: string | null;
+          siren?: string | null;
+          siret?: string | null;
           city?: string | null;
           department?: string | null;
+          industry?: string | null;
+          legal_form?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -219,6 +237,8 @@ export type Database = {
           email_verification_status: Database["public"]["Enums"]["verification_status"];
           professional_profile_summary: string | null;
           company_id: string | null;
+          identification_source: string | null;
+          identification_confidence: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -235,6 +255,8 @@ export type Database = {
           email_verification_status?: Database["public"]["Enums"]["verification_status"];
           professional_profile_summary?: string | null;
           company_id?: string | null;
+          identification_source?: string | null;
+          identification_confidence?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -250,6 +272,8 @@ export type Database = {
           email_verification_status?: Database["public"]["Enums"]["verification_status"];
           professional_profile_summary?: string | null;
           company_id?: string | null;
+          identification_source?: string | null;
+          identification_confidence?: number | null;
           updated_at?: string;
         };
         Relationships: [
@@ -284,6 +308,11 @@ export type Database = {
           rejection_reason:
             Database["public"]["Enums"]["opportunity_rejection_reason"] | null;
           internal_notes: string | null;
+          origin: Database["public"]["Enums"]["opportunity_origin"];
+          automatic_score: number | null;
+          automatic_confidence:
+            Database["public"]["Enums"]["confidence_level"] | null;
+          detection_run_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -308,6 +337,11 @@ export type Database = {
           rejection_reason?:
             Database["public"]["Enums"]["opportunity_rejection_reason"] | null;
           internal_notes?: string | null;
+          origin?: Database["public"]["Enums"]["opportunity_origin"];
+          automatic_score?: number | null;
+          automatic_confidence?:
+            Database["public"]["Enums"]["confidence_level"] | null;
+          detection_run_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -328,6 +362,11 @@ export type Database = {
           rejection_reason?:
             Database["public"]["Enums"]["opportunity_rejection_reason"] | null;
           internal_notes?: string | null;
+          origin?: Database["public"]["Enums"]["opportunity_origin"];
+          automatic_score?: number | null;
+          automatic_confidence?:
+            Database["public"]["Enums"]["confidence_level"] | null;
+          detection_run_id?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -352,6 +391,13 @@ export type Database = {
             referencedRelation: "prospects";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "opportunities_detection_run_id_fkey";
+            columns: ["detection_run_id"];
+            isOneToOne: false;
+            referencedRelation: "detection_runs";
+            referencedColumns: ["id"];
+          },
         ];
       };
       signals: {
@@ -368,6 +414,10 @@ export type Database = {
           source_published_at: string | null;
           verification_status: Database["public"]["Enums"]["signal_verification_status"];
           verified_at: string | null;
+          source_document_id: string | null;
+          confidence_level: Database["public"]["Enums"]["confidence_level"];
+          extraction_method: Database["public"]["Enums"]["extraction_method"];
+          extraction_version: string;
           created_at: string;
           updated_at: string;
         };
@@ -384,6 +434,10 @@ export type Database = {
           source_published_at?: string | null;
           verification_status?: Database["public"]["Enums"]["signal_verification_status"];
           verified_at?: string | null;
+          source_document_id?: string | null;
+          confidence_level?: Database["public"]["Enums"]["confidence_level"];
+          extraction_method?: Database["public"]["Enums"]["extraction_method"];
+          extraction_version?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -398,6 +452,10 @@ export type Database = {
           source_published_at?: string | null;
           verification_status?: Database["public"]["Enums"]["signal_verification_status"];
           verified_at?: string | null;
+          source_document_id?: string | null;
+          confidence_level?: Database["public"]["Enums"]["confidence_level"];
+          extraction_method?: Database["public"]["Enums"]["extraction_method"];
+          extraction_version?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -406,6 +464,13 @@ export type Database = {
             columns: ["prospect_id"];
             isOneToOne: false;
             referencedRelation: "prospects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "signals_source_document_id_fkey";
+            columns: ["source_document_id"];
+            isOneToOne: true;
+            referencedRelation: "source_documents";
             referencedColumns: ["id"];
           },
         ];
@@ -682,6 +747,233 @@ export type Database = {
           },
         ];
       };
+      detection_runs: {
+        Row: {
+          id: string;
+          source_key: string;
+          status: Database["public"]["Enums"]["detection_run_status"];
+          started_at: string | null;
+          completed_at: string | null;
+          documents_collected: number;
+          documents_processed: number;
+          signals_detected: number;
+          prospects_created: number;
+          opportunities_created: number;
+          opportunities_ignored: number;
+          errors_count: number;
+          metadata: Json | null;
+          launched_by_user_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_key: string;
+          status?: Database["public"]["Enums"]["detection_run_status"];
+          started_at?: string | null;
+          completed_at?: string | null;
+          documents_collected?: number;
+          documents_processed?: number;
+          signals_detected?: number;
+          prospects_created?: number;
+          opportunities_created?: number;
+          opportunities_ignored?: number;
+          errors_count?: number;
+          metadata?: Json | null;
+          launched_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          source_key?: string;
+          status?: Database["public"]["Enums"]["detection_run_status"];
+          started_at?: string | null;
+          completed_at?: string | null;
+          documents_collected?: number;
+          documents_processed?: number;
+          signals_detected?: number;
+          prospects_created?: number;
+          opportunities_created?: number;
+          opportunities_ignored?: number;
+          errors_count?: number;
+          metadata?: Json | null;
+          launched_by_user_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "detection_runs_launched_by_user_id_fkey";
+            columns: ["launched_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      source_documents: {
+        Row: {
+          id: string;
+          source_key: string;
+          external_id: string | null;
+          source_url: string;
+          title: string;
+          raw_content: string;
+          content_hash: string;
+          published_at: string | null;
+          collected_at: string;
+          processing_status: Database["public"]["Enums"]["source_document_processing_status"];
+          processing_error: string | null;
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_key: string;
+          external_id?: string | null;
+          source_url: string;
+          title: string;
+          raw_content: string;
+          content_hash: string;
+          published_at?: string | null;
+          collected_at: string;
+          processing_status?: Database["public"]["Enums"]["source_document_processing_status"];
+          processing_error?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          source_key?: string;
+          external_id?: string | null;
+          source_url?: string;
+          title?: string;
+          raw_content?: string;
+          content_hash?: string;
+          published_at?: string | null;
+          collected_at?: string;
+          processing_status?: Database["public"]["Enums"]["source_document_processing_status"];
+          processing_error?: string | null;
+          metadata?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      detection_run_items: {
+        Row: {
+          id: string;
+          detection_run_id: string;
+          source_document_id: string;
+          status: Database["public"]["Enums"]["detection_run_item_status"];
+          rejection_reasons: string[];
+          matching_reasons: string[];
+          error_message: string | null;
+          attempt_count: number;
+          next_retry_at: string | null;
+          duration_ms: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          detection_run_id: string;
+          source_document_id: string;
+          status?: Database["public"]["Enums"]["detection_run_item_status"];
+          rejection_reasons?: string[];
+          matching_reasons?: string[];
+          error_message?: string | null;
+          attempt_count?: number;
+          next_retry_at?: string | null;
+          duration_ms?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: Database["public"]["Enums"]["detection_run_item_status"];
+          rejection_reasons?: string[];
+          matching_reasons?: string[];
+          error_message?: string | null;
+          attempt_count?: number;
+          next_retry_at?: string | null;
+          duration_ms?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "detection_run_items_detection_run_id_fkey";
+            columns: ["detection_run_id"];
+            isOneToOne: false;
+            referencedRelation: "detection_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "detection_run_items_source_document_id_fkey";
+            columns: ["source_document_id"];
+            isOneToOne: false;
+            referencedRelation: "source_documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      extraction_invocations: {
+        Row: {
+          id: string;
+          detection_run_id: string;
+          input_document_id: string;
+          provider: string;
+          model: string;
+          prompt_version: string;
+          output: Json | null;
+          latency_ms: number | null;
+          input_tokens: number | null;
+          output_tokens: number | null;
+          status: Database["public"]["Enums"]["extraction_invocation_status"];
+          error_message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          detection_run_id: string;
+          input_document_id: string;
+          provider: string;
+          model: string;
+          prompt_version: string;
+          output?: Json | null;
+          latency_ms?: number | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          status?: Database["public"]["Enums"]["extraction_invocation_status"];
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          provider?: string;
+          model?: string;
+          prompt_version?: string;
+          output?: Json | null;
+          latency_ms?: number | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          status?: Database["public"]["Enums"]["extraction_invocation_status"];
+          error_message?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "extraction_invocations_detection_run_id_fkey";
+            columns: ["detection_run_id"];
+            isOneToOne: false;
+            referencedRelation: "detection_runs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extraction_invocations_input_document_id_fkey";
+            columns: ["input_document_id"];
+            isOneToOne: false;
+            referencedRelation: "source_documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       audit_logs: {
         Row: {
           id: string;
@@ -782,6 +1074,31 @@ export type Database = {
         | "DUPLICATE"
         | "COMPLIANCE_RISK"
         | "OTHER";
+      opportunity_origin: "CSV_IMPORT" | "AUTOMATED_DETECTION" | "MANUAL";
+      source_document_processing_status:
+        "COLLECTED" | "PROCESSING" | "PROCESSED" | "IGNORED" | "FAILED";
+      detection_run_status:
+        | "PENDING"
+        | "RUNNING"
+        | "COMPLETED"
+        | "COMPLETED_WITH_ERRORS"
+        | "FAILED";
+      detection_run_item_status:
+        "COLLECTED" | "PROCESSING" | "PROCESSED" | "IGNORED" | "FAILED";
+      detection_signal_type:
+        | "COMPANY_SALE"
+        | "BUSINESS_TRANSFER"
+        | "FUNDRAISING"
+        | "MANAGEMENT_CHANGE"
+        | "COMPANY_CREATION"
+        | "COMPANY_CLOSURE"
+        | "DIVIDEND_EVENT"
+        | "REAL_ESTATE_TRANSACTION"
+        | "PROFESSIONAL_SUCCESSION"
+        | "LIQUIDITY_EVENT"
+        | "OTHER";
+      extraction_method: "DETERMINISTIC" | "LLM";
+      extraction_invocation_status: "PENDING" | "COMPLETED" | "FAILED";
     };
     CompositeTypes: Record<never, never>;
   };

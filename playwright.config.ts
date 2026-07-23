@@ -18,7 +18,18 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
+    env: {
+      ...process.env,
+      DETECTION_ENABLED: demoPasswordEnabled() ? "true" : "false",
+      DETECTION_SOURCE_BODACC_DEMO_ENABLED: demoPasswordEnabled()
+        ? "true"
+        : "false",
+    },
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
   },
 });
+
+function demoPasswordEnabled() {
+  return Boolean(process.env.E2E_DEMO_USER_PASSWORD);
+}

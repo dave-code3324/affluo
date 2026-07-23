@@ -4,7 +4,8 @@ Affluo est un moteur de prospection destiné aux conseillers en gestion de
 patrimoine. Ce dépôt contient le socle du MVP, l’authentification, l’onboarding
 du cabinet, la consultation sécurisée des sélections hebdomadaires et la fiche
 prospect orientée décision. Il comprend également l’outil interne d’import CSV
-et de qualification manuelle des opportunités.
+et de qualification manuelle des opportunités, ainsi qu’un pipeline de
+détection déterministe inspiré de Patrimoine Radar.
 
 ## Prérequis
 
@@ -254,6 +255,88 @@ composant client ajouté pour ce parcours affiche localement le nom et la taille
 du fichier sélectionné ; le parsing, les droits et l’écriture restent côté
 serveur.
 
+### Patrimoine Radar
+
+L’audit du moteur concierge existant et les décisions de migration sont
+documentés dans
+[`docs/patrimoine-radar-migration.md`](docs/patrimoine-radar-migration.md).
+Le moteur observé utilisait principalement des annonces BODACC sélectionnées
+et enrichies manuellement. Les collecteurs Reddit/Apify historiques ne sont pas
+repris, car ils validaient le marché mais ne détectaient pas d’événements
+patrimoniaux.
+
+Le pipeline Affluo sépare explicitement :
+
+```text
+source → document → extraction factuelle → entreprise → prospect
+       → qualification → déduplication → brouillon → revue humaine
+```
+
+La première source réelle utilise l’API publique BODACC de la DILA et se limite
+aux ventes et cessions. Elle ne crée un prospect que lorsqu’une personne
+physique est explicitement identifiée comme ancien propriétaire. Les documents
+ambigus sont conservés avec un motif d’exclusion. Pappers, LinkedIn et les
+annuaires observés dans l’ancien moteur ne sont pas collectés automatiquement.
+
+Les faits sont stockés dans le signal et reliés au document source. `whyNow`,
+`potentialNeeds` et `qualificationSummary` sont générés séparément et commencent
+par une formulation d’hypothèse. Un score automatique sert uniquement à
+prioriser la revue ; il ne prouve ni patrimoine, ni liquidité reçue, ni besoin
+de conseil.
+
+Chaque opportunité automatisée possède :
+
+```text
+status = DRAFT
+reviewStatus = TO_REVIEW
+origin = AUTOMATED_DETECTION
+firmId = null
+weeklyBatchId = null
+```
+
+Les documents sont dédupliqués par identifiant externe, URL et empreinte. Les
+sociétés sont rapprochées en priorité par SIREN, SIRET ou domaine ; un nom seul
+ne suffit jamais. Les exécutions et chaque document possèdent un statut, un
+nombre de tentatives, un délai progressif et des motifs explicites. Une
+contrainte PostgreSQL empêche deux exécutions simultanées d’une même source.
+
+#### Activation
+
+Le moteur, le planificateur et toutes les sources sont désactivés par défaut.
+Pour tester uniquement la source fictive :
+
+```dotenv
+DETECTION_ENABLED=true
+DETECTION_SOURCE_BODACC_DEMO_ENABLED=true
+```
+
+Pour activer explicitement la collecte réelle BODACC :
+
+```dotenv
+DETECTION_ENABLED=true
+DETECTION_SOURCE_BODACC_ENABLED=true
+DETECTION_SOURCE_BODACC_INTERVAL_MINUTES=1440
+```
+
+L’espace `/admin/detection` permet le lancement manuel et affiche les
+documents, signaux, exclusions et erreurs. La source de démonstration
+`BODACC_DEMO` ne doit être activée que pour les tests.
+
+Le cron Vercel appelle quotidiennement `/api/jobs/detection`. En production,
+configurez une valeur aléatoire longue dans `CRON_SECRET`, puis activez :
+
+```dotenv
+DETECTION_SCHEDULER_ENABLED=true
+```
+
+Le planificateur respecte ensuite la fréquence de chaque source et reprend en
+priorité les documents dont le délai de nouvelle tentative est arrivé à
+échéance.
+
+Une interface `SignalExtractionProvider` et un schéma Zod préparent un éventuel
+fournisseur LLM. Aucun fournisseur n’est implémenté ou appelé dans ce ticket.
+`DETECTION_LLM_ENABLED` reste désactivé.
+
 ### Règles de sécurité de la fiche
 
 Le cabinet et l’utilisateur proviennent exclusivement de la session Supabase.
@@ -268,9 +351,9 @@ RLS pour les signaux, coordonnées, sources et décisions. Les coordonnées
 DTO avant rendu. Les erreurs côté utilisateur restent génériques et n’exposent
 ni requête, ni erreur Prisma, ni identifiant d’un autre tenant.
 
-L’import ne publie aucune donnée, n’assigne aucun cabinet et ne déclenche ni
-CRM, ni enrichissement, ni scoring. Les intégrations OpenAI, Resend et Stripe
-restent hors scope et ne sont jamais appelées.
+L’import et la détection ne publient aucune donnée, n’assignent aucun cabinet
+et ne déclenchent ni CRM ni enrichissement. Les intégrations OpenAI, Resend et
+Stripe restent hors scope et ne sont jamais appelées.
 
 ## Déploiement
 

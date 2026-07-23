@@ -456,6 +456,7 @@ async function upsertCompany(
       data: {
         city: row.city,
         department: row.department,
+        legalName: row.companyName || "Entreprise non renseignée",
         name: row.companyName || "Entreprise non renseignée",
         website: row.companyWebsite,
       },
@@ -466,6 +467,7 @@ async function upsertCompany(
     data: {
       city: row.city,
       department: row.department,
+      legalName: row.companyName || "Entreprise non renseignée",
       name: row.companyName || "Entreprise non renseignée",
       normalizedDomain: domain,
       normalizedName: normalizedName || "entreprise-non-renseignee",
@@ -654,6 +656,7 @@ async function importOneRow(
           confidenceLevel: normalized.confidenceLevel ?? ConfidenceLevel.MEDIUM,
           contactabilityStatus: contactability(normalized),
           internalNotes: normalized.notes,
+          origin: "CSV_IMPORT",
           potentialNeeds: normalized.potentialNeeds,
           prospectId: prospect.id,
           qualificationSummary: null,

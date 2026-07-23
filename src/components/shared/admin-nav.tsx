@@ -1,4 +1,10 @@
-import { FileUp, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import {
+  FileUp,
+  LayoutDashboard,
+  LogOut,
+  Radar,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 
 import { signOutAction } from "@/modules/auth/actions";
@@ -6,6 +12,7 @@ import { signOutAction } from "@/modules/auth/actions";
 const links = [
   { href: "/admin", label: "Vue d’ensemble", icon: LayoutDashboard },
   { href: "/admin/imports", label: "Imports CSV", icon: FileUp },
+  { href: "/admin/detection", label: "Détection", icon: Radar },
   { href: "/admin/review", label: "Qualification", icon: ShieldCheck },
 ];
 

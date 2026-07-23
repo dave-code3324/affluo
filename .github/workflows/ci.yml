@@ -28,6 +28,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/affluo_test?schema=public
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/affluo_test?schema=public
       RUN_DATABASE_TESTS: "true"
+      DETECTION_ENABLED: "true"
+      DETECTION_SOURCE_BODACC_DEMO_ENABLED: "true"
 
     steps:
       - name: Checkout
