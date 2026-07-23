@@ -87,6 +87,17 @@ export default async function ReviewDetailPage({
           <p className="mt-2 text-slate-600">
             {opportunity.prospect.jobTitle} · {opportunity.prospect.companyName}
           </p>
+          {opportunity.origin === "AUTOMATED_DETECTION" ? (
+            <p className="mt-2 text-sm font-semibold text-blue-800">
+              Détection automatique
+              {opportunity.automaticScore !== null
+                ? ` · score de priorité ${opportunity.automaticScore}/100`
+                : ""}
+              {opportunity.detectionRun
+                ? ` · source ${opportunity.detectionRun.sourceKey}`
+                : ""}
+            </p>
+          ) : null}
         </div>
         {opportunity.reviewStatus === "TO_REVIEW" ||
         opportunity.reviewStatus === "NEEDS_CHANGES" ? (
@@ -256,7 +267,7 @@ export default async function ReviewDetailPage({
           </div>
         </Panel>
 
-        <Panel eyebrow="Évaluation interne" title="Qualification">
+        <Panel eyebrow="Hypothèses patrimoniales" title="Qualification">
           <div className="grid gap-5 sm:grid-cols-2">
             <SelectField
               label="Confiance"

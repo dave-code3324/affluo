@@ -111,6 +111,14 @@ export default async function ReviewQueuePage({
                       <span className="border-navy/10 bg-ivory rounded-full border px-3 py-1 text-xs font-semibold text-slate-700">
                         {REVIEW_STATUS_LABELS[opportunity.reviewStatus]}
                       </span>
+                      {opportunity.origin === "AUTOMATED_DETECTION" ? (
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
+                          Détection automatique
+                          {opportunity.automaticScore !== null
+                            ? ` · ${opportunity.automaticScore}/100`
+                            : ""}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-sm font-semibold text-slate-700">
                       {opportunity.prospect.companyName}
@@ -145,6 +153,12 @@ export default async function ReviewQueuePage({
                       <p className="mt-2 text-xs text-slate-400">
                         Import{" "}
                         {opportunity.createdImportRow.dataImport.filename}
+                      </p>
+                    ) : null}
+                    {opportunity.detectionRun ? (
+                      <p className="mt-2 text-xs text-slate-400">
+                        Source {opportunity.detectionRun.sourceKey} · exécution{" "}
+                        {formatDate(opportunity.detectionRun.createdAt)}
                       </p>
                     ) : null}
                   </div>

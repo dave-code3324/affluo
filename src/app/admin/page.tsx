@@ -1,4 +1,10 @@
-import { ArrowRight, FileCheck2, FileWarning, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  FileCheck2,
+  FileWarning,
+  Radar,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -6,16 +12,23 @@ import { prisma } from "@/lib/db/prisma";
 import { cn } from "@/lib/utils";
 
 export default async function AdminDashboardPage() {
-  const [readyImports, failedImports, reviewCount] = await Promise.all([
-    prisma.dataImport.count({ where: { status: "READY" } }),
-    prisma.dataImport.count({ where: { status: "FAILED" } }),
-    prisma.opportunity.count({
-      where: {
-        status: "DRAFT",
-        reviewStatus: { in: ["TO_REVIEW", "IN_REVIEW", "NEEDS_CHANGES"] },
-      },
-    }),
-  ]);
+  const [readyImports, failedImports, reviewCount, detectionCount] =
+    await Promise.all([
+      prisma.dataImport.count({ where: { status: "READY" } }),
+      prisma.dataImport.count({ where: { status: "FAILED" } }),
+      prisma.opportunity.count({
+        where: {
+          status: "DRAFT",
+          reviewStatus: { in: ["TO_REVIEW", "IN_REVIEW", "NEEDS_CHANGES"] },
+        },
+      }),
+      prisma.opportunity.count({
+        where: {
+          origin: "AUTOMATED_DETECTION",
+          status: "DRAFT",
+        },
+      }),
+    ]);
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -30,7 +43,7 @@ export default async function AdminDashboardPage() {
         opportunité avant toute livraison.
       </p>
 
-      <div className="mt-10 grid gap-5 md:grid-cols-3">
+      <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <Metric
           icon={FileCheck2}
           label="Imports prêts"
@@ -44,6 +57,12 @@ export default async function AdminDashboardPage() {
           tone="warning"
         />
         <Metric
+          icon={Radar}
+          label="Détections en brouillon"
+          value={detectionCount}
+          tone="neutral"
+        />
+        <Metric
           icon={ShieldCheck}
           label="Fiches à qualifier"
           value={reviewCount}
@@ -51,7 +70,7 @@ export default async function AdminDashboardPage() {
         />
       </div>
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2">
+      <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <article className="border-navy/10 rounded-3xl border bg-white p-7 shadow-sm">
           <h2 className="text-navy font-serif text-2xl">
             Alimenter le produit
@@ -62,6 +81,22 @@ export default async function AdminDashboardPage() {
           </p>
           <Link href="/admin/imports" className={cn(buttonVariants(), "mt-6")}>
             Gérer les imports
+            <ArrowRight aria-hidden="true" className="ml-2 size-4" />
+          </Link>
+        </article>
+        <article className="border-navy/10 rounded-3xl border bg-white p-7 shadow-sm">
+          <h2 className="text-navy font-serif text-2xl">
+            Surveiller les sources
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Lancez les sources activées, suivez les documents et examinez les
+            motifs d’exclusion sans publier automatiquement.
+          </p>
+          <Link
+            href="/admin/detection"
+            className={cn(buttonVariants({ variant: "secondary" }), "mt-6")}
+          >
+            Ouvrir la détection
             <ArrowRight aria-hidden="true" className="ml-2 size-4" />
           </Link>
         </article>

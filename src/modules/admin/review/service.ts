@@ -92,6 +92,8 @@ export async function getReviewQueue({
       id: true,
       confidenceLevel: true,
       contactabilityStatus: true,
+      origin: true,
+      automaticScore: true,
       reviewStatus: true,
       createdAt: true,
       prospect: {
@@ -122,6 +124,9 @@ export async function getReviewQueue({
           dataImport: { select: { filename: true } },
         },
       },
+      detectionRun: {
+        select: { id: true, sourceKey: true, createdAt: true },
+      },
     },
   });
 
@@ -150,6 +155,9 @@ export async function getAdminReviewDetail(opportunityId: string) {
       internalNotes: true,
       confidenceLevel: true,
       contactabilityStatus: true,
+      origin: true,
+      automaticScore: true,
+      automaticConfidence: true,
       reviewStatus: true,
       rejectionReason: true,
       reviewedAt: true,
@@ -206,6 +214,9 @@ export async function getAdminReviewDetail(opportunityId: string) {
             select: { id: true, filename: true, createdAt: true },
           },
         },
+      },
+      detectionRun: {
+        select: { id: true, sourceKey: true, createdAt: true },
       },
     },
   });
@@ -350,6 +361,7 @@ export async function saveReviewCorrections(
       await transaction.company.update({
         where: { id: companyId },
         data: {
+          legalName: corrections.prospect.companyName,
           name: corrections.prospect.companyName,
           normalizedDomain: normalizedDomain(
             corrections.prospect.companyWebsite || null,

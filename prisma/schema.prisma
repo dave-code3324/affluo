@@ -152,6 +152,75 @@ enum OpportunityRejectionReason {
   @@map("opportunity_rejection_reason")
 }
 
+enum OpportunityOrigin {
+  CSV_IMPORT
+  AUTOMATED_DETECTION
+  MANUAL
+
+  @@map("opportunity_origin")
+}
+
+enum SourceDocumentProcessingStatus {
+  COLLECTED
+  PROCESSING
+  PROCESSED
+  IGNORED
+  FAILED
+
+  @@map("source_document_processing_status")
+}
+
+enum DetectionRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+
+  @@map("detection_run_status")
+}
+
+enum DetectionRunItemStatus {
+  COLLECTED
+  PROCESSING
+  PROCESSED
+  IGNORED
+  FAILED
+
+  @@map("detection_run_item_status")
+}
+
+enum DetectionSignalType {
+  COMPANY_SALE
+  BUSINESS_TRANSFER
+  FUNDRAISING
+  MANAGEMENT_CHANGE
+  COMPANY_CREATION
+  COMPANY_CLOSURE
+  DIVIDEND_EVENT
+  REAL_ESTATE_TRANSACTION
+  PROFESSIONAL_SUCCESSION
+  LIQUIDITY_EVENT
+  OTHER
+
+  @@map("detection_signal_type")
+}
+
+enum ExtractionMethod {
+  DETERMINISTIC
+  LLM
+
+  @@map("extraction_method")
+}
+
+enum ExtractionInvocationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+
+  @@map("extraction_invocation_status")
+}
+
 model User {
   id                    String                @id @db.Uuid
   email                 String                @unique
@@ -165,6 +234,7 @@ model User {
   createdImports        DataImport[]
   auditLogs             AuditLog[]
   verifiedContacts      ContactDetail[]       @relation("ContactVerifier")
+  detectionRuns         DetectionRun[]
 
   @@map("users")
 }
@@ -175,8 +245,14 @@ model Company {
   normalizedName   String     @map("normalized_name")
   website          String?
   normalizedDomain String?    @unique @map("normalized_domain")
+  legalName        String     @map("legal_name")
+  tradeName        String?    @map("trade_name")
+  siren            String?    @unique
+  siret            String?    @unique
   city             String?
   department       String?
+  industry         String?
+  legalForm        String?    @map("legal_form")
   createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
   prospects        Prospect[]
@@ -259,6 +335,8 @@ model Prospect {
   emailVerificationStatus    VerificationStatus @default(UNVERIFIED) @map("email_verification_status")
   professionalProfileSummary String?            @map("professional_profile_summary")
   companyId                  String?            @map("company_id") @db.Uuid
+  identificationSource       String?            @map("identification_source")
+  identificationConfidence   Int?               @map("identification_confidence")
   createdAt                  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                  DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   opportunities              Opportunity[]
@@ -292,6 +370,10 @@ model Opportunity {
   reviewStatus         OpportunityReviewStatus     @default(TO_REVIEW) @map("review_status")
   rejectionReason      OpportunityRejectionReason? @map("rejection_reason")
   internalNotes        String?                     @map("internal_notes")
+  origin               OpportunityOrigin           @default(MANUAL)
+  automaticScore       Int?                        @map("automatic_score")
+  automaticConfidence  ConfidenceLevel?            @map("automatic_confidence")
+  detectionRunId       String?                     @map("detection_run_id") @db.Uuid
   createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
   firm                 Firm?                       @relation(fields: [firmId], references: [id], onDelete: Cascade)
@@ -301,10 +383,12 @@ model Opportunity {
   signals              OpportunitySignal[]
   feedbacks            OpportunityFeedback[]
   createdImportRow     ImportRow?                  @relation("CreatedOpportunity")
+  detectionRun         DetectionRun?               @relation(fields: [detectionRunId], references: [id], onDelete: SetNull)
 
   @@unique([weeklyBatchId, prospectId])
   @@index([firmId, status])
   @@index([weeklyBatchId, status, relevanceScore])
+  @@index([detectionRunId])
   @@map("opportunities")
 }
 
@@ -321,10 +405,15 @@ model Signal {
   sourcePublishedAt  DateTime?                @map("source_published_at") @db.Timestamptz(6)
   verificationStatus SignalVerificationStatus @default(UNVERIFIED) @map("verification_status")
   verifiedAt         DateTime?                @map("verified_at") @db.Timestamptz(6)
+  sourceDocumentId   String?                  @unique @map("source_document_id") @db.Uuid
+  confidenceLevel    ConfidenceLevel          @default(MEDIUM) @map("confidence_level")
+  extractionMethod   ExtractionMethod         @default(DETERMINISTIC) @map("extraction_method")
+  extractionVersion  String                   @default("deterministic-v1") @map("extraction_version")
   createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
   prospect           Prospect                 @relation(fields: [prospectId], references: [id], onDelete: Cascade)
   opportunities      OpportunitySignal[]
+  sourceDocument     SourceDocument?          @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
 
   @@index([prospectId, verificationStatus])
   @@map("signals")
@@ -446,4 +535,100 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorUserId, createdAt])
   @@map("audit_logs")
+}
+
+model DetectionRun {
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceKey             String                 @map("source_key")
+  status                DetectionRunStatus     @default(PENDING)
+  startedAt             DateTime?              @map("started_at") @db.Timestamptz(6)
+  completedAt           DateTime?              @map("completed_at") @db.Timestamptz(6)
+  documentsCollected    Int                    @default(0) @map("documents_collected")
+  documentsProcessed    Int                    @default(0) @map("documents_processed")
+  signalsDetected       Int                    @default(0) @map("signals_detected")
+  prospectsCreated      Int                    @default(0) @map("prospects_created")
+  opportunitiesCreated  Int                    @default(0) @map("opportunities_created")
+  opportunitiesIgnored  Int                    @default(0) @map("opportunities_ignored")
+  errorsCount           Int                    @default(0) @map("errors_count")
+  metadata              Json?
+  launchedByUserId      String?                @map("launched_by_user_id") @db.Uuid
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  launchedBy            User?                  @relation(fields: [launchedByUserId], references: [id], onDelete: SetNull)
+  items                 DetectionRunItem[]
+  opportunities         Opportunity[]
+  extractionInvocations ExtractionInvocation[]
+
+  @@index([sourceKey, createdAt])
+  @@index([status])
+  @@map("detection_runs")
+}
+
+model SourceDocument {
+  id                    String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceKey             String                         @map("source_key")
+  externalId            String?                        @map("external_id")
+  sourceUrl             String                         @map("source_url")
+  title                 String
+  rawContent            String                         @map("raw_content")
+  contentHash           String                         @map("content_hash")
+  publishedAt           DateTime?                      @map("published_at") @db.Timestamptz(6)
+  collectedAt           DateTime                       @map("collected_at") @db.Timestamptz(6)
+  processingStatus      SourceDocumentProcessingStatus @default(COLLECTED) @map("processing_status")
+  processingError       String?                        @map("processing_error")
+  metadata              Json?
+  createdAt             DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  runItems              DetectionRunItem[]
+  signals               Signal[]
+  extractionInvocations ExtractionInvocation[]
+
+  @@unique([sourceKey, externalId])
+  @@unique([sourceKey, sourceUrl])
+  @@unique([sourceKey, contentHash])
+  @@index([processingStatus, collectedAt])
+  @@map("source_documents")
+}
+
+model DetectionRunItem {
+  id               String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  detectionRunId   String                 @map("detection_run_id") @db.Uuid
+  sourceDocumentId String                 @map("source_document_id") @db.Uuid
+  status           DetectionRunItemStatus @default(COLLECTED)
+  rejectionReasons String[]               @default([]) @map("rejection_reasons")
+  matchingReasons  String[]               @default([]) @map("matching_reasons")
+  errorMessage     String?                @map("error_message")
+  attemptCount     Int                    @default(0) @map("attempt_count")
+  nextRetryAt      DateTime?              @map("next_retry_at") @db.Timestamptz(6)
+  durationMs       Int?                   @map("duration_ms")
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  detectionRun     DetectionRun           @relation(fields: [detectionRunId], references: [id], onDelete: Cascade)
+  sourceDocument   SourceDocument         @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+
+  @@unique([detectionRunId, sourceDocumentId])
+  @@index([detectionRunId, status])
+  @@map("detection_run_items")
+}
+
+model ExtractionInvocation {
+  id              String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  detectionRunId  String                     @map("detection_run_id") @db.Uuid
+  inputDocumentId String                     @map("input_document_id") @db.Uuid
+  provider        String
+  model           String
+  promptVersion   String                     @map("prompt_version")
+  output          Json?
+  latencyMs       Int?                       @map("latency_ms")
+  inputTokens     Int?                       @map("input_tokens")
+  outputTokens    Int?                       @map("output_tokens")
+  status          ExtractionInvocationStatus @default(PENDING)
+  errorMessage    String?                    @map("error_message")
+  createdAt       DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  detectionRun    DetectionRun               @relation(fields: [detectionRunId], references: [id], onDelete: Cascade)
+  inputDocument   SourceDocument             @relation(fields: [inputDocumentId], references: [id], onDelete: Cascade)
+
+  @@index([detectionRunId])
+  @@index([inputDocumentId])
+  @@map("extraction_invocations")
 }
